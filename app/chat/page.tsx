@@ -61,9 +61,10 @@ export default function ChatPage() {
         throw new Error(payload.error || "Unexpected server response.");
       }
 
+      const reply = payload.reply;
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: payload.reply },
+        { role: "assistant", content: reply },
       ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed.");
