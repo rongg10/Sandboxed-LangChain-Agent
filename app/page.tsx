@@ -1,70 +1,24 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-
-// Client-only UI; no secrets or agent execution live here.
-type ChatMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
-
-// Seed the UI with a friendly assistant prompt.
-const STARTER_MESSAGES: ChatMessage[] = [
-  {
-    role: "assistant",
-    content: "Hi! Ask me anything and I'll run the agent on the server.",
-  },
-];
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
-  const [messages, setMessages] = useState<ChatMessage[]>(STARTER_MESSAGES);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const [prompt, setPrompt] = useState("");
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleStart(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const trimmed = input.trim();
-    if (!trimmed || isLoading) {
-      return;
-    }
+    const trimmed = prompt.trim();
+    const target = trimmed
+      ? `/chat?prompt=${encodeURIComponent(trimmed)}`
+      : "/chat";
+    router.push(target);
+  }
 
-    const nextMessages: ChatMessage[] = [
-      ...messages,
-      { role: "user", content: trimmed },
-    ];
-    setMessages(nextMessages);
-    setInput("");
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Send the full conversation to the server-side agent.
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: nextMessages }),
-      });
-      const payload = (await response.json()) as {
-        reply?: string;
-        error?: string;
-      };
-
-      if (!response.ok || typeof payload.reply !== "string") {
-        throw new Error(payload.error || "Unexpected server response.");
-      }
-
-      const reply = payload.reply;
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: reply },
-      ]);
-    } catch (err) {
-      // Surface a friendly error without leaking internals.
-      setError(err instanceof Error ? err.message : "Request failed.");
-    } finally {
-      setIsLoading(false);
-    }
+  function handleQuickStart() {
+    router.push("/chat");
   }
 
   return (
@@ -80,14 +34,14 @@ export default function HomePage() {
           </div>
         </div>
         <nav className="nav">
-          <a href="#">Product</a>
-          <a href="#">Security</a>
-          <a href="#">Solutions</a>
-          <a href="#">Docs</a>
+          <Link href="/#product">Product</Link>
+          <Link href="/#security">Security</Link>
+          <Link href="/#solutions">Solutions</Link>
+          <Link href="/#docs">Docs</Link>
         </nav>
-        <button className="cta" type="button">
+        <Link className="button cta" href="/#demo">
           Request demo
-        </button>
+        </Link>
       </header>
 
       <section className="hero">
@@ -99,13 +53,25 @@ export default function HomePage() {
             reliable automations without compromising your stack.
           </p>
           <div className="hero-actions">
-            <button className="primary" type="button">
+            <button className="button primary" type="button" onClick={handleQuickStart}>
               Start a session
             </button>
-            <button className="ghost" type="button">
+            <Link className="button ghost" href="/#docs">
               View documentation
-            </button>
+            </Link>
           </div>
+          <form className="session-form" onSubmit={handleStart}>
+            <input
+              type="text"
+              placeholder="Ask the agent to run a task"
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              aria-label="Agent request"
+            />
+            <button className="button primary" type="submit">
+              Start session
+            </button>
+          </form>
           <div className="metrics">
             <div className="metric">
               <span className="metric-value">99.99%</span>
@@ -130,46 +96,81 @@ export default function HomePage() {
         <div className="hero-panel">
           <div className="panel-header">
             <div>
-              <p className="panel-title">Live agent console</p>
+              <p className="panel-title">Session preview</p>
               <p className="panel-subtitle">
-                Server-only execution with structured logs
+                What teams run before they go to production
               </p>
             </div>
-            <span className="status-pill">Live</span>
+            <span className="status-pill">Preview</span>
           </div>
-
-          <section className="chat-container" aria-live="polite">
-            <div className="message-list">
-              {messages.map((message, index) => (
-                <div
-                  key={`${message.role}-${index}`}
-                  className={`message ${message.role}`}
-                >
-                  <span className="message-role">
-                    {message.role === "user" ? "You" : "Agent"}
-                  </span>
-                  <span className="message-content">{message.content}</span>
-                </div>
-              ))}
+          <div className="preview-list">
+            <div className="preview-item">
+              <span className="preview-label">Request</span>
+              <span className="preview-text">
+                Summarize last week&apos;s support tickets
+              </span>
             </div>
-
-            <form className="form" onSubmit={handleSubmit}>
-              <input
-                type="text"
-                placeholder="Ask the agent to run a task"
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                disabled={isLoading}
-                aria-label="Message"
-              />
-              <button type="submit" disabled={isLoading || !input.trim()}>
-                {isLoading ? "Sending..." : "Send"}
-              </button>
-            </form>
-
-            {error ? <p className="notice">{error}</p> : null}
-          </section>
+            <div className="preview-item">
+              <span className="preview-label">Agent</span>
+              <span className="preview-text">
+                Classified 128 issues and flagged 12 escalations
+              </span>
+            </div>
+            <div className="preview-item">
+              <span className="preview-label">Audit</span>
+              <span className="preview-text">
+                Logged actions, access checks, and output validation
+              </span>
+            </div>
+          </div>
+          <Link className="button ghost panel-cta" href="/chat">
+            Open live console
+          </Link>
         </div>
+      </section>
+
+      <section className="info-grid" id="product">
+        <div className="info-card">
+          <h2>Product</h2>
+          <p>
+            Coordinate automation, keep secrets server-side, and deliver results
+            your operators can trust.
+          </p>
+        </div>
+        <div className="info-card" id="security">
+          <h2>Security</h2>
+          <p>
+            Enforced policies, scoped execution, and step-level telemetry for
+            audits and compliance.
+          </p>
+        </div>
+        <div className="info-card" id="solutions">
+          <h2>Solutions</h2>
+          <p>
+            Route agents into support, QA, and ops workflows without exposing
+            credentials.
+          </p>
+        </div>
+        <div className="info-card" id="docs">
+          <h2>Docs</h2>
+          <p>
+            Build on a clear API, deploy in minutes, and monitor every run with
+            structured logs.
+          </p>
+        </div>
+      </section>
+
+      <section className="demo" id="demo">
+        <div>
+          <h2>Request a demo</h2>
+          <p>
+            Tell us about your workflow and we will tailor an agent sandbox for
+            your team.
+          </p>
+        </div>
+        <Link className="button primary" href="/chat">
+          Start live session
+        </Link>
       </section>
 
       <footer className="page-footer">
