@@ -29,7 +29,10 @@ export default function HomePage() {
       return;
     }
 
-    const nextMessages = [...messages, { role: "user", content: trimmed }];
+    const nextMessages: ChatMessage[] = [
+      ...messages,
+      { role: "user", content: trimmed },
+    ];
     setMessages(nextMessages);
     setInput("");
     setIsLoading(true);
