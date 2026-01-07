@@ -68,40 +68,113 @@ export default function HomePage() {
   }
 
   return (
-    <main>
-      <header>
-        <h1>Sandboxed Agent</h1>
-        <p>Server-only execution, no API keys in the browser.</p>
+    <main className="page">
+      <header className="top-bar">
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true">
+            ◼
+          </span>
+          <div>
+            <p className="brand-name">Sandboxed Agent</p>
+            <p className="brand-tagline">Secure execution for modern teams</p>
+          </div>
+        </div>
+        <nav className="nav">
+          <a href="#">Product</a>
+          <a href="#">Security</a>
+          <a href="#">Solutions</a>
+          <a href="#">Docs</a>
+        </nav>
+        <button className="cta" type="button">
+          Request demo
+        </button>
       </header>
 
-      <section className="chat-container" aria-live="polite">
-        <div className="message-list">
-          {messages.map((message, index) => (
-            <div
-              key={`${message.role}-${index}`}
-              className={`message ${message.role}`}
-            >
-              {message.content}
+      <section className="hero">
+        <div className="hero-copy">
+          <p className="eyebrow">Enterprise-ready agent runtime</p>
+          <h1>Automate with confidence in a secure, controlled sandbox.</h1>
+          <p className="subhead">
+            Run tasks on the server, keep credentials locked down, and ship
+            reliable automations without compromising your stack.
+          </p>
+          <div className="hero-actions">
+            <button className="primary" type="button">
+              Start a session
+            </button>
+            <button className="ghost" type="button">
+              View documentation
+            </button>
+          </div>
+          <div className="metrics">
+            <div className="metric">
+              <span className="metric-value">99.99%</span>
+              <span className="metric-label">Uptime SLA</span>
             </div>
-          ))}
+            <div className="metric">
+              <span className="metric-value">120ms</span>
+              <span className="metric-label">Median response</span>
+            </div>
+            <div className="metric">
+              <span className="metric-value">SOC 2</span>
+              <span className="metric-label">Audit ready</span>
+            </div>
+          </div>
+          <div className="trust-row">
+            <span>Role-based access</span>
+            <span>Audit trails</span>
+            <span>Regional isolation</span>
+          </div>
         </div>
 
-        <form className="form" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            placeholder="Type your message"
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            disabled={isLoading}
-            aria-label="Message"
-          />
-          <button type="submit" disabled={isLoading || !input.trim()}>
-            {isLoading ? "Sending..." : "Send"}
-          </button>
-        </form>
+        <div className="hero-panel">
+          <div className="panel-header">
+            <div>
+              <p className="panel-title">Live agent console</p>
+              <p className="panel-subtitle">
+                Server-only execution with structured logs
+              </p>
+            </div>
+            <span className="status-pill">Live</span>
+          </div>
 
-        {error ? <p className="notice">{error}</p> : null}
+          <section className="chat-container" aria-live="polite">
+            <div className="message-list">
+              {messages.map((message, index) => (
+                <div
+                  key={`${message.role}-${index}`}
+                  className={`message ${message.role}`}
+                >
+                  <span className="message-role">
+                    {message.role === "user" ? "You" : "Agent"}
+                  </span>
+                  <span className="message-content">{message.content}</span>
+                </div>
+              ))}
+            </div>
+
+            <form className="form" onSubmit={handleSubmit}>
+              <input
+                type="text"
+                placeholder="Ask the agent to run a task"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                disabled={isLoading}
+                aria-label="Message"
+              />
+              <button type="submit" disabled={isLoading || !input.trim()}>
+                {isLoading ? "Sending..." : "Send"}
+              </button>
+            </form>
+
+            {error ? <p className="notice">{error}</p> : null}
+          </section>
+        </div>
       </section>
+
+      <footer className="page-footer">
+        <p>Trusted by security-first teams shipping production agents.</p>
+      </footer>
     </main>
   );
 }
