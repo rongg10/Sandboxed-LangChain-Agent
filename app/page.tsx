@@ -50,13 +50,14 @@ export default function HomePage() {
         error?: string;
       };
 
-      if (!response.ok || !payload.reply) {
+      if (!response.ok || typeof payload.reply !== "string") {
         throw new Error(payload.error || "Unexpected server response.");
       }
 
+      const reply = payload.reply;
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: payload.reply },
+        { role: "assistant", content: reply },
       ]);
     } catch (err) {
       // Surface a friendly error without leaking internals.
