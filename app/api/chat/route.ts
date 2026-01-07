@@ -109,7 +109,7 @@ export async function POST(request: Request) {
   try {
     const backendUrl = process.env.BACKEND_URL;
     if (backendUrl) {
-      const response = await fetch(`${backendUrl.replace(/\\/$/, "")}/chat`, {
+      const response = await fetch(`${backendUrl.replace(/\/$/, "")}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages }),
