@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -23,12 +23,35 @@ export default function ChatClient() {
   const [input, setInput] = useState(prompt);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (prompt) {
       setInput(prompt);
     }
   }, [prompt]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const existing = window.sessionStorage.getItem("sandbox_session_id");
+    if (existing) {
+      setSessionId(existing);
+      return;
+    }
+    const created =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `sess_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    window.sessionStorage.setItem("sandbox_session_id", created);
+    setSessionId(created);
+  }, []);
 
   function updateAssistantMessage(content: string) {
     setMessages((prev) => {
@@ -55,7 +78,10 @@ export default function ChatClient() {
           "Content-Type": "application/json",
           Accept: "text/event-stream",
         },
-        body: JSON.stringify({ messages: nextMessages }),
+        body: JSON.stringify({
+          messages: nextMessages,
+          session_id: sessionId || undefined,
+        }),
       });
 
       if (!response.ok || !response.body) {
@@ -169,6 +195,53 @@ export default function ChatClient() {
     }
   }
 
+  async function handleUpload() {
+    if (!sessionId || pendingFiles.length === 0 || uploading) {
+      return;
+    }
+    setUploading(true);
+    setUploadError(null);
+    const form = new FormData();
+    form.append("session_id", sessionId);
+    pendingFiles.forEach((file) => form.append("files", file, file.name));
+
+    try {
+      const response = await fetch("/api/files", {
+        method: "POST",
+        body: form,
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        files?: Array<{ name?: string }>;
+      };
+      if (!response.ok) {
+        throw new Error(payload.error || "Upload failed.");
+      }
+      const names =
+        payload.files?.map((entry) => entry.name).filter(Boolean) ||
+        pendingFiles.map((file) => file.name);
+      setUploadedFiles((prev) => {
+        const next = new Set(prev);
+        names.forEach((name) => next.add(String(name)));
+        return Array.from(next);
+      });
+      setPendingFiles([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleFileSelection(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files || []);
+    setPendingFiles(files);
+    setUploadError(null);
+  }
+
   return (
     <main className="chat-page">
       <header className="top-bar">
@@ -201,6 +274,45 @@ export default function ChatClient() {
           </div>
           <span className="status-pill">Live</span>
         </div>
+
+        <section className="upload-panel">
+          <div>
+            <p className="upload-title">Session files</p>
+            <p className="upload-subtitle">
+              Uploaded files are copied to <span>/data</span> for each run.
+            </p>
+          </div>
+          <div className="upload-actions">
+            <label className="button ghost upload-button">
+              Choose files
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleFileSelection}
+              />
+            </label>
+            <button
+              type="button"
+              className="button primary"
+              onClick={handleUpload}
+              disabled={!pendingFiles.length || uploading || !sessionId}
+            >
+              {uploading ? "Uploading..." : "Upload"}
+            </button>
+          </div>
+          <div className="upload-meta">
+            {pendingFiles.length > 0 ? (
+              <p>Selected: {pendingFiles.map((file) => file.name).join(", ")}</p>
+            ) : (
+              <p>No files selected.</p>
+            )}
+            {uploadedFiles.length > 0 ? (
+              <p>Uploaded: {uploadedFiles.join(", ")}</p>
+            ) : null}
+            {uploadError ? <p className="notice">{uploadError}</p> : null}
+          </div>
+        </section>
 
         <section className="chat-container" aria-live="polite">
           <div className="message-list">

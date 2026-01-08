@@ -301,6 +301,58 @@ h2 {
   margin-bottom: 18px;
 }
 
+.upload-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(245, 246, 242, 0.92);
+  border: 1px solid rgba(216, 224, 234, 0.8);
+}
+
+.upload-title {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.upload-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.upload-subtitle span {
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+.upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.upload-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-button input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.upload-meta {
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .panel-title {
   font-weight: 700;
   color: var(--ink);

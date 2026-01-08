@@ -21,6 +21,17 @@ python main.py "Calculate the 10th Fibonacci number using code"
 
 If you run without a prompt, the script starts an interactive loop.
 
+## Session files
+
+The backend supports disk-backed uploads per chat session. Files are copied into
+the Pyodide filesystem at `/data` for each run.
+
+Environment knobs:
+
+- `SESSION_BASE_DIR` (default `/tmp/sandbox-sessions`)
+- `SESSION_TTL_S` (default `1800`, 30 minutes)
+- `SESSION_MAX_BYTES` (default `52428800`, 50MB)
+
 ## Notes on the sandbox
 
 This is a best-effort sandbox meant to reduce risk, not a hardened security boundary. It:

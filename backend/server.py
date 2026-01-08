@@ -3,11 +3,22 @@ import os
 import time
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from main import build_agent, build_agent_streamer
+from sandbox_session import reset_session_files_dir, set_session_files_dir
+from backend.session_store import (
+    SESSION_MAX_BYTES,
+    ensure_session,
+    get_session_files_dir,
+    maybe_cleanup_sessions,
+    reserve_space,
+    safe_filename,
+    update_session_access,
+    validate_session_id,
+)
 
 app = FastAPI()
 agent = build_agent()
@@ -27,6 +38,7 @@ class Message(BaseModel):
 
 class ChatBody(BaseModel):
     messages: list[Message]
+    session_id: str | None = None
 
 
 def _get_client_ip(request: Request) -> str:
@@ -62,6 +74,81 @@ def _format_messages(messages: list[Message]) -> str:
     return "\n\n".join(parts)
 
 
+def _resolve_session_dir(session_id: str | None) -> str | None:
+    if not session_id:
+        return None
+    maybe_cleanup_sessions()
+    try:
+        cleaned = validate_session_id(session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    ensure_session(cleaned)
+    update_session_access(cleaned)
+    return get_session_files_dir(cleaned)
+
+
+@app.post("/files/upload")
+async def upload_files(
+    session_id: str = Form(...), files: list[UploadFile] = File(...)
+) -> dict[str, object]:
+    try:
+        cleaned = validate_session_id(session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    maybe_cleanup_sessions()
+    meta = ensure_session(cleaned)
+    files_dir = get_session_files_dir(cleaned)
+    session_total = int(meta.get("total_bytes", 0))
+    saved: list[dict[str, object]] = []
+
+    for upload in files:
+        try:
+            filename = safe_filename(upload.filename or "")
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        target_path = os.path.join(files_dir, filename)
+        existing_size = os.path.getsize(target_path) if os.path.exists(target_path) else 0
+        temp_path = f"{target_path}.uploading"
+
+        size = 0
+        try:
+            with open(temp_path, "wb") as f:
+                while True:
+                    chunk = await upload.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    size += len(chunk)
+                    new_total = session_total - existing_size + size
+                    if new_total > SESSION_MAX_BYTES:
+                        raise HTTPException(
+                            status_code=413,
+                            detail="Session storage limit exceeded.",
+                        )
+                    f.write(chunk)
+        except HTTPException:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            raise
+        finally:
+            await upload.close()
+
+        try:
+            reserve_space(cleaned, size, existing_size=existing_size)
+        except ValueError as exc:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            raise HTTPException(status_code=413, detail=str(exc)) from exc
+
+        os.replace(temp_path, target_path)
+        saved.append({"name": filename, "size": size})
+        session_total = session_total - existing_size + size
+
+    update_session_access(cleaned)
+    return {"status": "ok", "files": saved}
+
+
 @app.post("/chat")
 def chat(body: ChatBody, request: Request) -> dict[str, str]:
     _check_rate_limit(_get_client_ip(request))
@@ -81,7 +168,12 @@ def chat(body: ChatBody, request: Request) -> dict[str, str]:
         )
 
     try:
-        reply = agent(_format_messages(messages))
+        session_dir = _resolve_session_dir(body.session_id)
+        token = set_session_files_dir(session_dir)
+        try:
+            reply = agent(_format_messages(messages))
+        finally:
+            reset_session_files_dir(token)
     except Exception as exc:
         raise HTTPException(
             status_code=500,
@@ -110,13 +202,20 @@ async def chat_stream(body: ChatBody, request: Request):
         )
 
     prompt = _format_messages(messages)
+    session_dir = _resolve_session_dir(body.session_id)
 
     async def event_stream():
         try:
-            async for token in agent_streamer(prompt):
-                payload = json.dumps({"type": "token", "value": token}, ensure_ascii=True)
-                yield f"data: {payload}\n\n"
-            yield 'data: {"type":"done"}\n\n'
+            token_ctx = set_session_files_dir(session_dir)
+            try:
+                async for token in agent_streamer(prompt):
+                    payload = json.dumps(
+                        {"type": "token", "value": token}, ensure_ascii=True
+                    )
+                    yield f"data: {payload}\n\n"
+                yield 'data: {"type":"done"}\n\n'
+            finally:
+                reset_session_files_dir(token_ctx)
         except Exception:
             payload = json.dumps(
                 {"type": "error", "message": "Something went wrong while running the agent."},

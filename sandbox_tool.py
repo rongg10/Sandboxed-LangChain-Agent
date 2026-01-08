@@ -11,6 +11,8 @@ except ImportError:  # Windows
 from pydantic import BaseModel, Field
 from langchain_core.tools import BaseTool
 
+from sandbox_session import get_session_files_dir
+
 
 class SandboxedPythonInput(BaseModel):
     code: str = Field(..., description="Python code to execute")
@@ -76,6 +78,9 @@ class SandboxedPythonTool(BaseTool):
             if not os.path.exists(runner_path):
                 return f"Pyodide runner not found at {runner_path}."
             cmd = [node_bin, runner_path, script_path]
+            session_dir = get_session_files_dir()
+            if session_dir and os.path.isdir(session_dir):
+                cmd.append(session_dir)
             try:
                 completed = subprocess.run(
                     cmd,

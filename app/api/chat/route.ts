@@ -10,6 +10,7 @@ type ClientMessage = {
 
 type ChatBody = {
   messages?: ClientMessage[];
+  session_id?: string;
 };
 
 export const runtime = "nodejs";
@@ -85,6 +86,8 @@ export async function POST(request: Request) {
   }
 
   const messages = normalizeMessages(body.messages || []);
+  const sessionId =
+    typeof body.session_id === "string" ? body.session_id.trim() : "";
   if (messages.length === 0) {
     return NextResponse.json(
       { error: "Please provide at least one message." },
@@ -121,7 +124,10 @@ export async function POST(request: Request) {
               "Content-Type": "application/json",
               Accept: "text/event-stream",
             },
-            body: JSON.stringify({ messages }),
+            body: JSON.stringify({
+              messages,
+              session_id: sessionId || undefined,
+            }),
           }
         );
 
@@ -174,7 +180,10 @@ export async function POST(request: Request) {
       const response = await fetch(`${backendUrl.replace(/\/$/, "")}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages }),
+        body: JSON.stringify({
+          messages,
+          session_id: sessionId || undefined,
+        }),
       });
       const payload = (await response.json()) as {
         reply?: string;
