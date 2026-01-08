@@ -11,6 +11,7 @@ from main import build_agent, build_agent_streamer
 from sandbox_session import reset_session_files_dir, set_session_files_dir
 from backend.session_store import (
     SESSION_MAX_BYTES,
+    clear_session,
     ensure_session,
     get_session_files_dir,
     maybe_cleanup_sessions,
@@ -39,6 +40,10 @@ class Message(BaseModel):
 class ChatBody(BaseModel):
     messages: list[Message]
     session_id: str | None = None
+
+
+class SessionRequest(BaseModel):
+    session_id: str
 
 
 def _get_client_ip(request: Request) -> str:
@@ -147,6 +152,16 @@ async def upload_files(
 
     update_session_access(cleaned)
     return {"status": "ok", "files": saved}
+
+
+@app.post("/files/clear")
+def clear_files(payload: SessionRequest) -> dict[str, str]:
+    try:
+        cleaned = validate_session_id(payload.session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    clear_session(cleaned)
+    return {"status": "ok"}
 
 
 @app.post("/chat")

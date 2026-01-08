@@ -8,8 +8,8 @@ from typing import Optional
 SESSION_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{6,80}$")
 
 SESSION_BASE_DIR = os.getenv("SESSION_BASE_DIR", "/tmp/sandbox-sessions")
-SESSION_TTL_S = int(os.getenv("SESSION_TTL_S", "1800"))
-SESSION_MAX_BYTES = int(os.getenv("SESSION_MAX_BYTES", str(50 * 1024 * 1024)))
+SESSION_TTL_S = int(os.getenv("SESSION_TTL_S", "600"))
+SESSION_MAX_BYTES = int(os.getenv("SESSION_MAX_BYTES", str(5 * 1024 * 1024)))
 SESSION_META_FILENAME = "session.json"
 
 _last_cleanup_ts = 0.0
@@ -127,6 +127,12 @@ def safe_filename(filename: str) -> str:
     if not base:
         raise ValueError("Invalid filename.")
     return base
+
+
+def clear_session(session_id: str) -> None:
+    session_root = get_session_root(session_id)
+    if os.path.isdir(session_root):
+        shutil.rmtree(session_root, ignore_errors=True)
 
 
 def reserve_space(session_id: str, file_size: int, existing_size: int = 0) -> int:

@@ -29,8 +29,8 @@ the Pyodide filesystem at `/data` for each run.
 Environment knobs:
 
 - `SESSION_BASE_DIR` (default `/tmp/sandbox-sessions`)
-- `SESSION_TTL_S` (default `1800`, 30 minutes)
-- `SESSION_MAX_BYTES` (default `52428800`, 50MB)
+- `SESSION_TTL_S` (default `600`, 10 minutes)
+- `SESSION_MAX_BYTES` (default `5242880`, 5MB)
 
 ## Notes on the sandbox
 

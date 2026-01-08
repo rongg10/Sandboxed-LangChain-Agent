@@ -79,8 +79,10 @@ try {
         await copyTree(filesDir, "/data");
       }
     } catch (err) {
-      stderrChunks.push(`Failed to load session files: ${err?.message || err}`);
-      throw err;
+      const detail = err?.stack || err?.message || String(err);
+      stderrChunks.push(
+        `Failed to load session files from ${filesDir}: ${detail}`
+      );
     }
   }
   await pyodide.runPythonAsync(code);

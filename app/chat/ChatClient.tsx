@@ -1,6 +1,13 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  FormEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -29,6 +36,7 @@ export default function ChatClient() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const clearedRef = useRef(false);
 
   useEffect(() => {
     if (prompt) {
@@ -52,6 +60,39 @@ export default function ChatClient() {
     window.sessionStorage.setItem("sandbox_session_id", created);
     setSessionId(created);
   }, []);
+
+  const clearSession = useCallback(() => {
+    if (clearedRef.current || !sessionId) {
+      return;
+    }
+    clearedRef.current = true;
+    const payload = JSON.stringify({ session_id: sessionId });
+    if (typeof navigator !== "undefined" && "sendBeacon" in navigator) {
+      const blob = new Blob([payload], { type: "application/json" });
+      navigator.sendBeacon("/api/files/clear", blob);
+    } else {
+      fetch("/api/files/clear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+        keepalive: true,
+      }).catch(() => {});
+    }
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem("sandbox_session_id");
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      clearSession();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      clearSession();
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [clearSession]);
 
   function updateAssistantMessage(content: string) {
     setMessages((prev) => {
