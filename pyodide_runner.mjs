@@ -48,9 +48,15 @@ async function ensureDir(dirPath) {
     try {
       pyodide.FS.mkdir(current);
     } catch (err) {
-      if (err?.code !== "EEXIST" && err?.errno !== 17) {
-        throw err;
+      try {
+        const info = pyodide.FS.stat(current);
+        if (pyodide.FS.isDir(info.mode)) {
+          continue;
+        }
+      } catch {
+        // ignore stat failures and rethrow the original error
       }
+      throw err;
     }
   }
 }
@@ -79,7 +85,14 @@ try {
         await copyTree(filesDir, "/data");
       }
     } catch (err) {
-      const detail = err?.stack || err?.message || String(err);
+      let detail = err?.stack || err?.message;
+      if (!detail) {
+        try {
+          detail = JSON.stringify(err);
+        } catch {
+          detail = String(err);
+        }
+      }
       stderrChunks.push(
         `Failed to load session files from ${filesDir}: ${detail}`
       );
