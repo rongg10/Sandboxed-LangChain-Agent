@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import os
 import re
-from typing import Any, AsyncIterator, Callable
+from typing import Any, AsyncIterator, Callable, Optional
 
 from sandbox_tool import SandboxedPythonTool
 
@@ -190,13 +190,17 @@ def build_agent() -> Callable[[str], str]:
 
 
 def build_agent_streamer() -> Callable[[str], AsyncIterator[str]]:
+    fallback = build_agent()
     try:
         agent, mode = _create_agent(streaming=True)
     except Exception:
-        fallback = build_agent()
+        agent = None
+        mode = "input"
+
+    if agent is None or not hasattr(agent, "ainvoke"):
 
         async def stream(prompt: str) -> AsyncIterator[str]:
-            yield fallback(prompt)
+            yield await asyncio.to_thread(fallback, prompt)
 
         return stream
 
@@ -207,9 +211,15 @@ def build_agent_streamer() -> Callable[[str], AsyncIterator[str]]:
         else:
             payload = {"input": prompt}
 
+        error: Optional[Exception] = None
+        emitted = False
+
         async def _run() -> None:
+            nonlocal error
             try:
                 await _ainvoke_with_callbacks(agent, payload, handler)
+            except Exception as exc:
+                error = exc
             finally:
                 _mark_handler_done(handler)
 
@@ -217,9 +227,18 @@ def build_agent_streamer() -> Callable[[str], AsyncIterator[str]]:
         try:
             async for token in handler.aiter():
                 if token:
+                    emitted = True
                     yield token
         finally:
             await task
+
+        if error is not None:
+            if not emitted and isinstance(
+                error, (AttributeError, NotImplementedError, TypeError)
+            ):
+                yield await asyncio.to_thread(fallback, prompt)
+            else:
+                raise error
 
     return stream
 
