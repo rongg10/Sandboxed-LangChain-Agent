@@ -30,7 +30,7 @@ export default function HomePage() {
           </span>
           <div>
             <p className="brand-name">Sandboxed Agent</p>
-            <p className="brand-tagline">Secure execution for modern teams</p>
+            <p className="brand-tagline">Node + Pyodide sandbox runner</p>
           </div>
         </div>
         <nav className="nav">
@@ -46,11 +46,11 @@ export default function HomePage() {
 
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">Enterprise-ready agent runtime</p>
-          <h1>Automate with confidence in a secure, controlled sandbox.</h1>
+          <p className="eyebrow">Pyodide-backed execution</p>
+          <h1>Run short Python tasks in a constrained sandbox.</h1>
           <p className="subhead">
-            Run tasks on the server, keep credentials locked down, and ship
-            reliable automations without compromising your stack.
+            Execute code via Node + Pyodide with CPU, file, and time limits, then
+            read structured JSON output for stdout, stderr, and exit status.
           </p>
           <div className="hero-actions">
             <button className="button primary" type="button" onClick={handleQuickStart}>
@@ -72,24 +72,47 @@ export default function HomePage() {
               Start session
             </button>
           </form>
+          <div className="sample-prompts">
+            <p className="sample-title">You can ask:</p>
+            <ol>
+              <li>
+                <p className="sample-text">{`Generate all prime numbers below 1000.
+Then:
+compute how many there are,
+calculate the average gap between consecutive primes, and
+return the largest gap found.`}</p>
+              </li>
+              <li>
+                <p className="sample-text">{`Using code only:
+1. Create a list of 10,000 integers from 0 to 9,999.
+2. Shuffle the list with a fixed random seed of 12345.
+3. Remove all numbers divisible by 7.
+4. Square the remaining numbers.
+5. Compute and print:
+   - the length of the final list
+   - the first 5 elements
+   - the last 5 elements.`}</p>
+              </li>
+            </ol>
+          </div>
           <div className="metrics">
             <div className="metric">
-              <span className="metric-value">99.99%</span>
-              <span className="metric-label">Uptime SLA</span>
+              <span className="metric-value">6s</span>
+              <span className="metric-label">Default timeout</span>
             </div>
             <div className="metric">
-              <span className="metric-value">120ms</span>
-              <span className="metric-label">Median response</span>
+              <span className="metric-value">1MB</span>
+              <span className="metric-label">File size cap</span>
             </div>
             <div className="metric">
-              <span className="metric-value">SOC 2</span>
-              <span className="metric-label">Audit ready</span>
+              <span className="metric-value">32</span>
+              <span className="metric-label">Open file limit</span>
             </div>
           </div>
           <div className="trust-row">
-            <span>Role-based access</span>
-            <span>Audit trails</span>
-            <span>Regional isolation</span>
+            <span>Best-effort resource limits</span>
+            <span>Structured JSON output</span>
+            <span>Local Pyodide assets</span>
           </div>
         </div>
 
@@ -98,28 +121,28 @@ export default function HomePage() {
             <div>
               <p className="panel-title">Session preview</p>
               <p className="panel-subtitle">
-                What teams run before they go to production
+                Quick checks before you ship
               </p>
             </div>
-            <span className="status-pill">Preview</span>
+            <span className="status-pill">Sandbox</span>
           </div>
           <div className="preview-list">
             <div className="preview-item">
               <span className="preview-label">Request</span>
               <span className="preview-text">
-                Summarize last week&apos;s support tickets
+                Generate primes below 1000 and summarize the gaps
               </span>
             </div>
             <div className="preview-item">
               <span className="preview-label">Agent</span>
               <span className="preview-text">
-                Classified 128 issues and flagged 12 escalations
+                Ran sandboxed Python and returned JSON output
               </span>
             </div>
             <div className="preview-item">
               <span className="preview-label">Audit</span>
               <span className="preview-text">
-                Logged actions, access checks, and output validation
+                Captured stdout, stderr, exit code, and timeout flag
               </span>
             </div>
           </div>
@@ -133,48 +156,47 @@ export default function HomePage() {
         <div className="info-card">
           <h2>Product</h2>
           <p>
-            Coordinate automation, keep secrets server-side, and deliver results
-            your operators can trust.
+            A lightweight agent that runs short Python snippets in Node + Pyodide
+            and returns structured JSON results.
           </p>
         </div>
         <div className="info-card" id="security">
           <h2>Security</h2>
           <p>
-            Enforced policies, scoped execution, and step-level telemetry for
-            audits and compliance.
+            Best-effort sandboxing with CPU, file, and memory caps. Not a hardened
+            security boundary.
           </p>
         </div>
         <div className="info-card" id="solutions">
           <h2>Solutions</h2>
           <p>
-            Route agents into support, QA, and ops workflows without exposing
-            credentials.
+            Useful for verification tasks, data prep, and QA checks that need
+            quick code execution.
           </p>
         </div>
         <div className="info-card" id="docs">
           <h2>Docs</h2>
           <p>
-            Build on a clear API, deploy in minutes, and monitor every run with
-            structured logs.
+            Toggle timeouts and memory caps with env vars. Run locally with
+            Node 18+ and Python 3.11.
           </p>
         </div>
       </section>
 
       <section className="demo" id="demo">
         <div>
-          <h2>Request a demo</h2>
+          <h2>Try the live console</h2>
           <p>
-            Tell us about your workflow and we will tailor an agent sandbox for
-            your team.
+            Start a session and inspect the JSON output from each run.
           </p>
         </div>
         <Link className="button primary" href="/chat">
-          Start live session
+          Start a session
         </Link>
       </section>
 
       <footer className="page-footer">
-        <p>Trusted by security-first teams shipping production agents.</p>
+        <p>Built for local demos and lightweight automation checks.</p>
       </footer>
     </main>
   );

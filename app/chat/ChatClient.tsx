@@ -12,7 +12,7 @@ type ChatMessage = {
 const STARTER_MESSAGES: ChatMessage[] = [
   {
     role: "assistant",
-    content: "Hi! Ask me anything and I'll run the agent on the server.",
+    content: "Hi! Share a task and I'll run it in the sandbox.",
   },
 ];
 
@@ -178,7 +178,7 @@ export default function ChatClient() {
           </span>
           <div>
             <p className="brand-name">Sandboxed Agent</p>
-            <p className="brand-tagline">Secure execution for modern teams</p>
+            <p className="brand-tagline">Node + Pyodide sandbox runner</p>
           </div>
         </div>
         <nav className="nav">
@@ -196,7 +196,7 @@ export default function ChatClient() {
           <div>
             <p className="panel-title">Live agent console</p>
             <p className="panel-subtitle">
-              Server-only execution with structured logs
+              Short runs with JSON stdout, stderr, and exit status
             </p>
           </div>
           <span className="status-pill">Live</span>

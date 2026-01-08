@@ -39,5 +39,8 @@ path to the Pyodide assets (not a CDN URL).
 
 The sandbox tool returns JSON (status/stdout/stderr/exit_code/timed_out). Set
 `SANDBOX_ECHO_CODE=1` to include the executed code in the tool output.
+`SANDBOX_AS_MB` controls the address-space limit (MB) for the Node+Pyodide
+process; increase it if you see out-of-memory errors (set to `0` to skip
+setting the limit).
 
 If you need stronger isolation, swap the tool implementation to use Docker, gVisor, or a VM.

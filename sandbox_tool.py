@@ -63,9 +63,11 @@ class SandboxedPythonTool(BaseTool):
                 resource.setrlimit(resource.RLIMIT_NOFILE, (32, 32))
                 # Address space limit (best-effort; may be ignored on some OSes)
                 try:
-                    as_mb = int(os.environ.get("SANDBOX_AS_MB", "448"))
-                    as_bytes = max(64, as_mb) * 1024 * 1024
-                    resource.setrlimit(resource.RLIMIT_AS, (as_bytes, as_bytes))
+                    as_mb_raw = os.environ.get("SANDBOX_AS_MB", "768")
+                    as_mb = int(as_mb_raw)
+                    if as_mb > 0:
+                        as_bytes = max(64, as_mb) * 1024 * 1024
+                        resource.setrlimit(resource.RLIMIT_AS, (as_bytes, as_bytes))
                 except Exception:
                     pass
 
