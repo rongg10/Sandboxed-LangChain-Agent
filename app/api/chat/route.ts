@@ -107,7 +107,69 @@ export async function POST(request: Request) {
   }
 
   try {
+    const wantsStream =
+      new URL(request.url).searchParams.get("stream") === "1" ||
+      request.headers.get("accept")?.includes("text/event-stream");
     const backendUrl = process.env.BACKEND_URL;
+    if (wantsStream) {
+      if (backendUrl) {
+        const response = await fetch(
+          `${backendUrl.replace(/\/$/, "")}/chat/stream`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "text/event-stream",
+            },
+            body: JSON.stringify({ messages }),
+          }
+        );
+
+        if (!response.ok || !response.body) {
+          let detail = "Upstream agent error.";
+          try {
+            const payload = (await response.json()) as { detail?: string };
+            detail = payload.detail || detail;
+          } catch {
+            // ignore JSON parse errors
+          }
+          return NextResponse.json({ error: detail }, { status: response.status });
+        }
+
+        return new Response(response.body, {
+          status: response.status,
+          headers: {
+            "Content-Type":
+              response.headers.get("content-type") || "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        });
+      }
+
+      const reply = await runAgent(messages);
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: "token", value: reply })}\n\n`
+            )
+          );
+          controller.enqueue(encoder.encode('data: {"type":"done"}\n\n'));
+          controller.close();
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    }
+
     if (backendUrl) {
       const response = await fetch(`${backendUrl.replace(/\/$/, "")}/chat`, {
         method: "POST",

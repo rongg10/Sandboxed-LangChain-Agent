@@ -1,14 +1,17 @@
+import json
 import os
 import time
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from main import build_agent
+from main import build_agent, build_agent_streamer
 
 app = FastAPI()
 agent = build_agent()
+agent_streamer = build_agent_streamer()
 
 RATE_LIMIT_WINDOW_MS = int(os.getenv("RATE_LIMIT_WINDOW_MS", "60000"))
 RATE_LIMIT_MAX = int(os.getenv("RATE_LIMIT_MAX", "20"))
@@ -86,3 +89,41 @@ def chat(body: ChatBody, request: Request) -> dict[str, str]:
         ) from exc
 
     return {"reply": reply}
+
+
+@app.post("/chat/stream")
+async def chat_stream(body: ChatBody, request: Request):
+    _check_rate_limit(_get_client_ip(request))
+
+    messages = [message for message in body.messages if message.content.strip()]
+    if not messages:
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide at least one message.",
+        )
+
+    input_chars = sum(len(message.content) for message in messages)
+    if input_chars > MAX_INPUT_CHARS:
+        raise HTTPException(
+            status_code=400,
+            detail="Message too long. Please shorten your request and try again.",
+        )
+
+    prompt = _format_messages(messages)
+
+    async def event_stream():
+        try:
+            async for token in agent_streamer(prompt):
+                payload = json.dumps({"type": "token", "value": token}, ensure_ascii=True)
+                yield f"data: {payload}\n\n"
+            yield 'data: {"type":"done"}\n\n'
+        except Exception:
+            payload = json.dumps(
+                {"type": "error", "message": "Something went wrong while running the agent."},
+                ensure_ascii=True,
+            )
+            yield f"data: {payload}\n\n"
+            yield 'data: {"type":"done"}\n\n'
+
+    headers = {"Cache-Control": "no-cache", "Connection": "keep-alive"}
+    return StreamingResponse(event_stream(), media_type="text/event-stream", headers=headers)

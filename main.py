@@ -1,7 +1,8 @@
 import argparse
+import asyncio
 import os
 import re
-from typing import Any, Callable
+from typing import Any, AsyncIterator, Callable
 
 from sandbox_tool import SandboxedPythonTool
 
@@ -74,7 +75,7 @@ def _should_force_tool(text: str) -> bool:
     return False
 
 
-def build_agent() -> Callable[[str], str]:
+def _create_agent(streaming: bool):
     tools = [SandboxedPythonTool()]
     model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
@@ -106,7 +107,7 @@ def build_agent() -> Callable[[str], str]:
         except Exception:
             middleware = []
 
-        llm = ChatOpenAI(model=model_name, temperature=0)
+        llm = ChatOpenAI(model=model_name, temperature=0, streaming=streaming)
         agent = create_agent(
             model=llm,
             tools=tools,
@@ -114,19 +115,13 @@ def build_agent() -> Callable[[str], str]:
             middleware=middleware,
             debug=_verbose_enabled(),
         )
-
-        def run(prompt: str) -> str:
-            result = agent.invoke({"messages": [{"role": "user", "content": prompt}]})
-            output = _extract_output(result)
-            return output
-
-        return run
+        return agent, "messages"
 
     from langchain.agents import AgentExecutor, create_openai_tools_agent
     from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
     from langchain_openai import ChatOpenAI
 
-    llm = ChatOpenAI(model=model_name, temperature=0)
+    llm = ChatOpenAI(model=model_name, temperature=0, streaming=streaming)
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", SYSTEM_PROMPT),
@@ -136,12 +131,97 @@ def build_agent() -> Callable[[str], str]:
     )
     agent = create_openai_tools_agent(llm, tools, prompt)
     executor = AgentExecutor(agent=agent, tools=tools, verbose=_verbose_enabled())
+    return executor, "input"
+
+
+def _create_stream_handler():
+    try:
+        from langchain.callbacks.base import AsyncCallbackHandler
+    except Exception:
+        from langchain_core.callbacks.base import AsyncCallbackHandler
+
+    class _QueueCallbackHandler(AsyncCallbackHandler):
+        def __init__(self) -> None:
+            self.queue: asyncio.Queue[str] = asyncio.Queue()
+            self.done = asyncio.Event()
+
+        async def on_llm_new_token(self, token: str, **kwargs) -> None:
+            if token:
+                await self.queue.put(token)
+
+        async def aiter(self) -> AsyncIterator[str]:
+            while True:
+                if self.queue.empty() and self.done.is_set():
+                    break
+                try:
+                    token = await asyncio.wait_for(self.queue.get(), timeout=0.1)
+                except asyncio.TimeoutError:
+                    continue
+                yield token
+
+    return _QueueCallbackHandler()
+
+
+def _mark_handler_done(handler: Any) -> None:
+    done = getattr(handler, "done", None)
+    if hasattr(done, "set"):
+        done.set()
+
+
+async def _ainvoke_with_callbacks(agent: Any, payload: dict[str, Any], handler: Any) -> Any:
+    try:
+        return await agent.ainvoke(payload, config={"callbacks": [handler]})
+    except TypeError:
+        return await agent.ainvoke(payload, callbacks=[handler])
+
+
+def build_agent() -> Callable[[str], str]:
+    agent, mode = _create_agent(streaming=False)
 
     def run(prompt: str) -> str:
-        result = executor.invoke({"input": prompt})
-        return _extract_output(result)
+        if mode == "messages":
+            result = agent.invoke({"messages": [{"role": "user", "content": prompt}]})
+        else:
+            result = agent.invoke({"input": prompt})
+        output = _extract_output(result)
+        return output
 
     return run
+
+
+def build_agent_streamer() -> Callable[[str], AsyncIterator[str]]:
+    try:
+        agent, mode = _create_agent(streaming=True)
+    except Exception:
+        fallback = build_agent()
+
+        async def stream(prompt: str) -> AsyncIterator[str]:
+            yield fallback(prompt)
+
+        return stream
+
+    async def stream(prompt: str) -> AsyncIterator[str]:
+        handler = _create_stream_handler()
+        if mode == "messages":
+            payload = {"messages": [{"role": "user", "content": prompt}]}
+        else:
+            payload = {"input": prompt}
+
+        async def _run() -> None:
+            try:
+                await _ainvoke_with_callbacks(agent, payload, handler)
+            finally:
+                _mark_handler_done(handler)
+
+        task = asyncio.create_task(_run())
+        try:
+            async for token in handler.aiter():
+                if token:
+                    yield token
+        finally:
+            await task
+
+    return stream
 
 
 def main() -> None:

@@ -30,6 +30,120 @@ export default function ChatClient() {
     }
   }, [prompt]);
 
+  function updateAssistantMessage(content: string) {
+    setMessages((prev) => {
+      if (prev.length === 0) {
+        return prev;
+      }
+      const next = [...prev];
+      const last = next[next.length - 1];
+      if (last?.role === "assistant") {
+        next[next.length - 1] = { ...last, content };
+      }
+      return next;
+    });
+  }
+
+  async function streamReply(nextMessages: ChatMessage[]) {
+    let reply = "";
+    let inserted = false;
+
+    try {
+      const response = await fetch("/api/chat?stream=1", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+        },
+        body: JSON.stringify({ messages: nextMessages }),
+      });
+
+      if (!response.ok || !response.body) {
+        const payload = (await response
+          .json()
+          .catch(() => ({}))) as { error?: string };
+        throw new Error(payload.error || "Unexpected server response.");
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "" },
+      ]);
+      inserted = true;
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let streamDone = false;
+
+      while (!streamDone) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split("\n\n");
+        buffer = events.pop() ?? "";
+
+        for (const event of events) {
+          if (!event.trim()) {
+            continue;
+          }
+          const lines = event.split("\n");
+          let data = "";
+          for (const line of lines) {
+            if (line.startsWith("data:")) {
+              data += line.slice(5).trim();
+            }
+          }
+          if (!data) {
+            continue;
+          }
+
+          let payload: { type?: string; value?: string; message?: string };
+          try {
+            payload = JSON.parse(data) as {
+              type?: string;
+              value?: string;
+              message?: string;
+            };
+          } catch {
+            continue;
+          }
+
+          if (payload.type === "token" && payload.value) {
+            reply += payload.value;
+            updateAssistantMessage(reply);
+          } else if (payload.type === "error") {
+            throw new Error(payload.message || "Stream error.");
+          } else if (payload.type === "done") {
+            streamDone = true;
+            break;
+          }
+        }
+      }
+
+      if (!reply.trim()) {
+        updateAssistantMessage("(no output)");
+      }
+    } catch (err) {
+      if (inserted && reply.length === 0) {
+        setMessages((prev) => {
+          if (prev.length === 0) {
+            return prev;
+          }
+          const next = [...prev];
+          const last = next[next.length - 1];
+          if (last?.role === "assistant" && last.content === "") {
+            next.pop();
+          }
+          return next;
+        });
+      }
+      throw err;
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = input.trim();
@@ -47,25 +161,7 @@ export default function ChatClient() {
     setError(null);
 
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: nextMessages }),
-      });
-      const payload = (await response.json()) as {
-        reply?: string;
-        error?: string;
-      };
-
-      if (!response.ok || typeof payload.reply !== "string") {
-        throw new Error(payload.error || "Unexpected server response.");
-      }
-
-      const reply = payload.reply;
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: reply },
-      ]);
+      await streamReply(nextMessages);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed.");
     } finally {
