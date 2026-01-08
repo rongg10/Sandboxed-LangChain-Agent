@@ -299,6 +299,7 @@ export default function ChatClient() {
           <Link href="/#product">Product</Link>
           <Link href="/#security">Security</Link>
           <Link href="/#docs">Docs</Link>
+          <Link href="/examples">Examples</Link>
         </nav>
         <Link className="button cta ghost" href="/">
           Back to overview
@@ -316,76 +317,78 @@ export default function ChatClient() {
           <span className="status-pill">Live</span>
         </div>
 
-        <section className="upload-panel">
-          <div>
-            <p className="upload-title">Session files</p>
-            <p className="upload-subtitle">
-              Uploaded files are copied to <span>/data</span> for each run.
-            </p>
-          </div>
-          <div className="upload-actions">
-            <label className="button ghost upload-button">
-              Choose files
+        <div className="chat-main">
+          <section className="chat-container" aria-live="polite">
+            <div className="message-list">
+              {messages.map((message, index) => (
+                <div
+                  key={`${message.role}-${index}`}
+                  className={`message ${message.role}`}
+                >
+                  <span className="message-role">
+                    {message.role === "user" ? "You" : "Agent"}
+                  </span>
+                  <span className="message-content">{message.content}</span>
+                </div>
+              ))}
+            </div>
+
+            <form className="form" onSubmit={handleSubmit}>
               <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                onChange={handleFileSelection}
+                type="text"
+                placeholder="Ask the agent to run a task"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                disabled={isLoading}
+                aria-label="Message"
               />
-            </label>
-            <button
-              type="button"
-              className="button primary"
-              onClick={handleUpload}
-              disabled={!pendingFiles.length || uploading || !sessionId}
-            >
-              {uploading ? "Uploading..." : "Upload"}
-            </button>
-          </div>
-          <div className="upload-meta">
-            {pendingFiles.length > 0 ? (
-              <p>Selected: {pendingFiles.map((file) => file.name).join(", ")}</p>
-            ) : (
-              <p>No files selected.</p>
-            )}
-            {uploadedFiles.length > 0 ? (
-              <p>Uploaded: {uploadedFiles.join(", ")}</p>
-            ) : null}
-            {uploadError ? <p className="notice">{uploadError}</p> : null}
-          </div>
-        </section>
+              <button type="submit" disabled={isLoading || !input.trim()}>
+                {isLoading ? "Sending..." : "Send"}
+              </button>
+            </form>
 
-        <section className="chat-container" aria-live="polite">
-          <div className="message-list">
-            {messages.map((message, index) => (
-              <div
-                key={`${message.role}-${index}`}
-                className={`message ${message.role}`}
+            {error ? <p className="notice">{error}</p> : null}
+          </section>
+
+          <section className="upload-panel">
+            <div>
+              <p className="upload-title">Session files</p>
+              <p className="upload-subtitle">
+                Uploaded files are copied to <span>/data</span> for each run.
+              </p>
+            </div>
+            <div className="upload-actions">
+              <label className="button ghost upload-button">
+                Choose files
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={handleFileSelection}
+                />
+              </label>
+              <button
+                type="button"
+                className="button primary"
+                onClick={handleUpload}
+                disabled={!pendingFiles.length || uploading || !sessionId}
               >
-                <span className="message-role">
-                  {message.role === "user" ? "You" : "Agent"}
-                </span>
-                <span className="message-content">{message.content}</span>
-              </div>
-            ))}
-          </div>
-
-          <form className="form" onSubmit={handleSubmit}>
-            <input
-              type="text"
-              placeholder="Ask the agent to run a task"
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              disabled={isLoading}
-              aria-label="Message"
-            />
-            <button type="submit" disabled={isLoading || !input.trim()}>
-              {isLoading ? "Sending..." : "Send"}
-            </button>
-          </form>
-
-          {error ? <p className="notice">{error}</p> : null}
-        </section>
+                {uploading ? "Uploading..." : "Upload"}
+              </button>
+            </div>
+            <div className="upload-meta">
+              {pendingFiles.length > 0 ? (
+                <p>Selected: {pendingFiles.map((file) => file.name).join(", ")}</p>
+              ) : (
+                <p>No files selected.</p>
+              )}
+              {uploadedFiles.length > 0 ? (
+                <p>Uploaded: {uploadedFiles.join(", ")}</p>
+              ) : null}
+              {uploadError ? <p className="notice">{uploadError}</p> : null}
+            </div>
+          </section>
+        </div>
       </section>
     </main>
   );

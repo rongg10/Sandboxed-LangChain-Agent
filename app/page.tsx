@@ -38,6 +38,7 @@ export default function HomePage() {
           <Link href="/#security">Security</Link>
           <Link href="/#solutions">Solutions</Link>
           <Link href="/#docs">Docs</Link>
+          <Link href="/examples">Examples</Link>
         </nav>
         <Link className="button cta" href="/#demo">
           Request demo
