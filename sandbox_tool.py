@@ -14,7 +14,7 @@ from langchain_core.tools import BaseTool
 
 class SandboxedPythonInput(BaseModel):
     code: str = Field(..., description="Python code to execute")
-    timeout_s: int = Field(2, ge=1, le=10, description="Wall-clock timeout in seconds")
+    timeout_s: int = Field(6, ge=1, le=10, description="Wall-clock timeout in seconds")
 
 
 class SandboxedPythonTool(BaseTool):
@@ -35,7 +35,8 @@ class SandboxedPythonTool(BaseTool):
             return text, False
         return "...<truncated>...\n" + text[-limit:], True
 
-    def _run(self, code: str, timeout_s: int = 2) -> str:
+    def _run(self, code: str, timeout_s: int = 6) -> str:
+        timeout_s = int(os.environ.get("SANDBOX_TIMEOUT_S", str(timeout_s)))
         with tempfile.TemporaryDirectory(prefix="sandbox-") as tmpdir:
             script_path = os.path.join(tmpdir, "snippet.py")
             with open(script_path, "w", encoding="utf-8") as f:
@@ -62,7 +63,7 @@ class SandboxedPythonTool(BaseTool):
                 resource.setrlimit(resource.RLIMIT_NOFILE, (32, 32))
                 # Address space limit (best-effort; may be ignored on some OSes)
                 try:
-                    as_mb = int(os.environ.get("SANDBOX_AS_MB", "384"))
+                    as_mb = int(os.environ.get("SANDBOX_AS_MB", "448"))
                     as_bytes = max(64, as_mb) * 1024 * 1024
                     resource.setrlimit(resource.RLIMIT_AS, (as_bytes, as_bytes))
                 except Exception:
