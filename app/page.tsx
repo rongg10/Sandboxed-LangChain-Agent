@@ -35,10 +35,9 @@ export default function HomePage() {
         </div>
         <nav className="nav">
           <Link href="/#product">Product</Link>
-          <Link href="/#security">Security</Link>
-          <Link href="/#solutions">Solutions</Link>
-          <Link href="/#docs">Docs</Link>
+          <Link href="/architecture">Architecture</Link>
           <Link href="/examples">Examples</Link>
+          <Link href="/contact">Contact</Link>
         </nav>
         <Link className="button cta" href="/#demo">
           Request demo
@@ -57,8 +56,8 @@ export default function HomePage() {
             <button className="button primary" type="button" onClick={handleQuickStart}>
               Start a session
             </button>
-            <Link className="button ghost" href="/#docs">
-              View documentation
+            <Link className="button ghost" href="/architecture">
+              View architecture
             </Link>
           </div>
           <form className="session-form" onSubmit={handleStart}>
@@ -161,25 +160,17 @@ return the largest gap found.`}</p>
             and returns structured JSON results.
           </p>
         </div>
-        <div className="info-card" id="security">
-          <h2>Security</h2>
+        <div className="info-card">
+          <h2>Architecture</h2>
           <p>
-            Best-effort sandboxing with CPU, file, and memory caps. Not a hardened
-            security boundary.
+            Two services: a Next.js UI and a FastAPI backend that executes
+            sandboxed runs with Node + Pyodide.
           </p>
         </div>
-        <div className="info-card" id="solutions">
-          <h2>Solutions</h2>
+        <div className="info-card">
+          <h2>Contact</h2>
           <p>
-            Useful for verification tasks, data prep, and QA checks that need
-            quick code execution.
-          </p>
-        </div>
-        <div className="info-card" id="docs">
-          <h2>Docs</h2>
-          <p>
-            Toggle timeouts and memory caps with env vars. Run locally with
-            Node 18+ and Python 3.11.
+            Reach out for access, pricing, or deployment guidance.
           </p>
         </div>
       </section>

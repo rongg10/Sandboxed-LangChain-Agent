@@ -297,9 +297,9 @@ export default function ChatClient() {
         </div>
         <nav className="nav">
           <Link href="/#product">Product</Link>
-          <Link href="/#security">Security</Link>
-          <Link href="/#docs">Docs</Link>
+          <Link href="/architecture">Architecture</Link>
           <Link href="/examples">Examples</Link>
+          <Link href="/contact">Contact</Link>
         </nav>
         <Link className="button cta ghost" href="/">
           Back to overview
