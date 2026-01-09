@@ -62,7 +62,7 @@ class SandboxedPythonTool(BaseTool):
                 # Limit file size to 1MB
                 resource.setrlimit(resource.RLIMIT_FSIZE, (10 * 1024 * 1024, 10 * 1024 * 1024))
                 # Limit number of open files
-                resource.setrlimit(resource.RLIMIT_NOFILE, (3, 3))
+                resource.setrlimit(resource.RLIMIT_NOFILE, (32, 32))
                 # Address space limit (best-effort; may be ignored on some OSes)
                 try:
                     as_mb_raw = os.environ.get("SANDBOX_AS_MB", "768")

@@ -105,7 +105,7 @@ return the largest gap found.`}</p>
               <span className="metric-label">File size cap</span>
             </div>
             <div className="metric">
-              <span className="metric-value">3</span>
+              <span className="metric-value">32</span>
               <span className="metric-label">Open file limit</span>
             </div>
           </div>
