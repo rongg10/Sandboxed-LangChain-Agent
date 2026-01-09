@@ -385,7 +385,9 @@ h2 {
   color: var(--accent-strong);
   font-weight: 600;
   cursor: pointer;
-  padding: 0;
+  padding: 2px 6px;
+  font-size: 16px;
+  line-height: 1;
 }
 
 .upload-remove:hover {

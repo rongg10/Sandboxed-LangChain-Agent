@@ -278,13 +278,32 @@ export default function ChatClient() {
   }
 
   function handleFileSelection(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files || []);
-    setPendingFiles(files);
+    const inputEl = event.currentTarget;
+    const files = Array.from(inputEl.files || []);
+    setPendingFiles((prev) => {
+      const next = [...prev];
+      for (const file of files) {
+        const exists = next.some(
+          (item) =>
+            item.name === file.name &&
+            item.size === file.size &&
+            item.lastModified === file.lastModified
+        );
+        if (!exists) {
+          next.push(file);
+        }
+      }
+      return next;
+    });
     setUploadError(null);
+    inputEl.value = "";
   }
 
   function handleRemovePending(index: number) {
     setPendingFiles((prev) => prev.filter((_, idx) => idx !== index));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }
 
   return (
@@ -390,8 +409,9 @@ export default function ChatClient() {
                       type="button"
                       className="upload-remove"
                       onClick={() => handleRemovePending(index)}
+                      aria-label={`Remove ${file.name}`}
                     >
-                      Remove
+                      x
                     </button>
                   </div>
                 ))}
