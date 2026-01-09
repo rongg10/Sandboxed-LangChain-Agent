@@ -228,6 +228,18 @@ def download_file(session_id: str, path: str):
     return FileResponse(file_path)
 
 
+@app.get("/files/list")
+def list_files(session_id: str):
+    try:
+        cleaned = validate_session_id(session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    session_dir = get_session_files_dir(cleaned)
+    images = _list_session_images(session_dir) if os.path.isdir(session_dir) else []
+    update_session_access(cleaned)
+    return {"images": images}
+
+
 @app.post("/chat")
 def chat(body: ChatBody, request: Request) -> dict[str, str]:
     _check_rate_limit(_get_client_ip(request))

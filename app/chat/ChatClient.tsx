@@ -198,6 +198,7 @@ export default function ChatClient() {
       if (!reply.trim()) {
         updateAssistantMessage("(no output)");
       }
+      await refreshImages();
     } catch (err) {
       if (inserted && reply.length === 0) {
         setMessages((prev) => {
@@ -282,6 +283,26 @@ export default function ChatClient() {
     }
   }
 
+  async function refreshImages() {
+    if (!sessionId) {
+      return;
+    }
+    try {
+      const response = await fetch(
+        `/api/files/list?session_id=${encodeURIComponent(sessionId)}`
+      );
+      if (!response.ok) {
+        return;
+      }
+      const payload = (await response.json()) as { images?: string[] };
+      if (Array.isArray(payload.images)) {
+        setImages(payload.images);
+      }
+    } catch {
+      // ignore refresh failures
+    }
+  }
+
   function handleFileSelection(event: ChangeEvent<HTMLInputElement>) {
     const inputEl = event.currentTarget;
     const files = Array.from(inputEl.files || []);
@@ -360,6 +381,87 @@ export default function ChatClient() {
         </div>
 
         <div className="chat-main">
+          <div className="chat-side">
+            <section className="image-panel">
+              <div>
+                <p className="upload-title">Images</p>
+                <p className="upload-subtitle">
+                  Generated plots appear here and can be downloaded.
+                </p>
+              </div>
+              {images.length > 0 ? (
+                <div className="image-grid">
+                  {images.map((path) => (
+                    <div className="image-card" key={path}>
+                      <img src={imageUrl(path)} alt={path} />
+                      <div className="image-meta">
+                        <span>{path.split("/").pop()}</span>
+                        <a href={imageUrl(path, true)} download>
+                          Download
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="image-empty">No images yet.</p>
+              )}
+            </section>
+
+            <section className="upload-panel">
+              <div>
+                <p className="upload-title">Session files</p>
+                <p className="upload-subtitle">
+                  Uploaded files are copied to <span>/data</span> for each run.
+                </p>
+              </div>
+              <div className="upload-actions">
+                <label className="button ghost upload-button">
+                  Choose files
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    onChange={handleFileSelection}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="button primary"
+                  onClick={handleUpload}
+                  disabled={!pendingFiles.length || uploading || !sessionId}
+                >
+                  {uploading ? "Uploading..." : "Upload"}
+                </button>
+              </div>
+              <div className="upload-meta">
+                {pendingFiles.length > 0 ? (
+                  <div className="upload-file-list">
+                    {pendingFiles.map((file, index) => (
+                      <div className="upload-file" key={`${file.name}-${index}`}>
+                        <span>{file.name}</span>
+                        <button
+                          type="button"
+                          className="upload-remove"
+                          onClick={() => handleRemovePending(index)}
+                          aria-label={`Remove ${file.name}`}
+                        >
+                          x
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p>No files selected.</p>
+                )}
+                {uploadedFiles.length > 0 ? (
+                  <p>Uploaded: {uploadedFiles.join(", ")}</p>
+                ) : null}
+                {uploadError ? <p className="notice">{uploadError}</p> : null}
+              </div>
+            </section>
+          </div>
+
           <section className="chat-container" aria-live="polite">
             <div className="message-list">
               {messages.map((message, index) => (
@@ -391,87 +493,6 @@ export default function ChatClient() {
 
             {error ? <p className="notice">{error}</p> : null}
           </section>
-
-          <div className="chat-side">
-            <section className="upload-panel">
-              <div>
-                <p className="upload-title">Session files</p>
-                <p className="upload-subtitle">
-                  Uploaded files are copied to <span>/data</span> for each run.
-                </p>
-              </div>
-              <div className="upload-actions">
-              <label className="button ghost upload-button">
-                Choose files
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  onChange={handleFileSelection}
-                />
-              </label>
-              <button
-                type="button"
-                className="button primary"
-                onClick={handleUpload}
-                disabled={!pendingFiles.length || uploading || !sessionId}
-              >
-                {uploading ? "Uploading..." : "Upload"}
-              </button>
-            </div>
-          <div className="upload-meta">
-            {pendingFiles.length > 0 ? (
-              <div className="upload-file-list">
-                {pendingFiles.map((file, index) => (
-                  <div className="upload-file" key={`${file.name}-${index}`}>
-                    <span>{file.name}</span>
-                    <button
-                      type="button"
-                      className="upload-remove"
-                      onClick={() => handleRemovePending(index)}
-                      aria-label={`Remove ${file.name}`}
-                    >
-                      x
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p>No files selected.</p>
-            )}
-            {uploadedFiles.length > 0 ? (
-              <p>Uploaded: {uploadedFiles.join(", ")}</p>
-            ) : null}
-              {uploadError ? <p className="notice">{uploadError}</p> : null}
-            </div>
-            </section>
-
-            <section className="image-panel">
-              <div>
-                <p className="upload-title">Images</p>
-                <p className="upload-subtitle">
-                  Generated plots appear here and can be downloaded.
-                </p>
-              </div>
-              {images.length > 0 ? (
-                <div className="image-grid">
-                  {images.map((path) => (
-                    <div className="image-card" key={path}>
-                      <img src={imageUrl(path)} alt={path} />
-                      <div className="image-meta">
-                        <span>{path.split("/").pop()}</span>
-                        <a href={imageUrl(path, true)} download>
-                          Download
-                        </a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="image-empty">No images yet.</p>
-              )}
-            </section>
-          </div>
         </div>
       </section>
     </main>
