@@ -62,6 +62,12 @@ export default function ChatClient() {
     setSessionId(created);
   }, []);
 
+  useEffect(() => {
+    if (sessionId) {
+      refreshImages();
+    }
+  }, [sessionId]);
+
   const clearSession = useCallback(() => {
     if (clearedRef.current || !sessionId) {
       return;
