@@ -283,6 +283,10 @@ export default function ChatClient() {
     setUploadError(null);
   }
 
+  function handleRemovePending(index: number) {
+    setPendingFiles((prev) => prev.filter((_, idx) => idx !== index));
+  }
+
   return (
     <main className="chat-page">
       <header className="top-bar">
@@ -376,15 +380,28 @@ export default function ChatClient() {
                 {uploading ? "Uploading..." : "Upload"}
               </button>
             </div>
-            <div className="upload-meta">
-              {pendingFiles.length > 0 ? (
-                <p>Selected: {pendingFiles.map((file) => file.name).join(", ")}</p>
-              ) : (
-                <p>No files selected.</p>
-              )}
-              {uploadedFiles.length > 0 ? (
-                <p>Uploaded: {uploadedFiles.join(", ")}</p>
-              ) : null}
+          <div className="upload-meta">
+            {pendingFiles.length > 0 ? (
+              <div className="upload-file-list">
+                {pendingFiles.map((file, index) => (
+                  <div className="upload-file" key={`${file.name}-${index}`}>
+                    <span>{file.name}</span>
+                    <button
+                      type="button"
+                      className="upload-remove"
+                      onClick={() => handleRemovePending(index)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>No files selected.</p>
+            )}
+            {uploadedFiles.length > 0 ? (
+              <p>Uploaded: {uploadedFiles.join(", ")}</p>
+            ) : null}
               {uploadError ? <p className="notice">{uploadError}</p> : null}
             </div>
           </section>

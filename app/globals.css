@@ -363,6 +363,35 @@ h2 {
   gap: 6px;
 }
 
+.upload-file-list {
+  display: grid;
+  gap: 8px;
+}
+
+.upload-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(216, 224, 234, 0.8);
+}
+
+.upload-remove {
+  border: none;
+  background: transparent;
+  color: var(--accent-strong);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.upload-remove:hover {
+  text-decoration: underline;
+}
+
 .examples-hero {
   padding: 24px;
   border-radius: 22px;
