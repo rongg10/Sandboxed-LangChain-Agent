@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import LanguageToggle from "../components/LanguageToggle";
+import { useLanguage } from "../components/LanguageProvider";
 
 export default function ContactPage() {
+  const { t } = useLanguage();
   return (
     <main className="page">
       <header className="top-bar">
@@ -9,41 +14,41 @@ export default function ContactPage() {
             ◼
           </span>
           <div>
-            <p className="brand-name">Sandboxed Agent</p>
-            <p className="brand-tagline">Dual-sandbox agent runtime</p>
+            <p className="brand-name">{t("brandName")}</p>
+            <p className="brand-tagline">{t("brandTagline")}</p>
           </div>
         </div>
         <nav className="nav">
-          <Link href="/#product">Product</Link>
-          <Link href="/architecture">Architecture</Link>
-          <Link href="/examples">Examples</Link>
-          <Link href="/contact">Contact</Link>
+          <Link href="/#product">{t("navProduct")}</Link>
+          <Link href="/architecture">{t("navArchitecture")}</Link>
+          <Link href="/examples">{t("navExamples")}</Link>
+          <Link href="/contact">{t("navContact")}</Link>
         </nav>
-        <Link className="button cta ghost" href="/chat">
-          Open console
-        </Link>
+        <div className="top-bar-actions">
+          <Link className="button cta ghost" href="/chat">
+            {t("ctaOpenConsole")}
+          </Link>
+          <LanguageToggle />
+        </div>
       </header>
 
       <section className="examples-hero">
         <div>
-          <p className="eyebrow">Contact</p>
-          <h1>Let&apos;s talk about your deployment.</h1>
-          <p className="subhead">
-            For access, partnerships, or support, reach out directly and we will
-            respond quickly.
-          </p>
+          <p className="eyebrow">{t("contactEyebrow")}</p>
+          <h1>{t("contactTitle")}</h1>
+          <p className="subhead">{t("contactSubtitle")}</p>
         </div>
       </section>
 
       <section className="demo">
         <div>
-          <h2>Email</h2>
+          <h2>{t("contactEmailTitle")}</h2>
           <p>
             <a href="mailto:rongshi206@gmail.com">rongshi206@gmail.com</a>
           </p>
         </div>
         <Link className="button primary" href="/chat">
-          Start a session
+          {t("ctaStartSession")}
         </Link>
       </section>
     </main>

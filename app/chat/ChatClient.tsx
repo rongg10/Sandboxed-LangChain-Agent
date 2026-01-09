@@ -10,23 +10,22 @@ import {
 } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import LanguageToggle from "../components/LanguageToggle";
+import { useLanguage } from "../components/LanguageProvider";
 
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
 };
 
-const STARTER_MESSAGES: ChatMessage[] = [
-  {
-    role: "assistant",
-    content: "Hi! Share a task and I'll run it in the sandbox.",
-  },
-];
-
 export default function ChatClient() {
   const searchParams = useSearchParams();
   const prompt = searchParams.get("prompt") ?? "";
-  const [messages, setMessages] = useState<ChatMessage[]>(STARTER_MESSAGES);
+  const { t, tf, lang } = useLanguage();
+  const starterMessage = t("chatStarter");
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [
+    { role: "assistant", content: starterMessage },
+  ]);
   const [input, setInput] = useState(prompt);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +38,15 @@ export default function ChatClient() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const clearedRef = useRef(false);
+
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].role === "assistant") {
+        return [{ role: "assistant", content: starterMessage }];
+      }
+      return prev;
+    });
+  }, [starterMessage, lang]);
 
   useEffect(() => {
     if (prompt) {
@@ -137,7 +145,7 @@ export default function ChatClient() {
         const payload = (await response
           .json()
           .catch(() => ({}))) as { error?: string };
-        throw new Error(payload.error || "Unexpected server response.");
+        throw new Error(payload.error || t("chatErrorUnexpected"));
       }
 
       setMessages((prev) => [
@@ -194,7 +202,7 @@ export default function ChatClient() {
               setImages(payload.value);
             }
           } else if (payload.type === "error") {
-            throw new Error(payload.message || "Stream error.");
+            throw new Error(payload.message || t("chatErrorStream"));
           } else if (payload.type === "done") {
             streamDone = true;
             break;
@@ -203,7 +211,7 @@ export default function ChatClient() {
       }
 
       if (!reply.trim()) {
-        updateAssistantMessage("(no output)");
+        updateAssistantMessage(t("chatNoOutput"));
       }
       await refreshImages();
     } catch (err) {
@@ -243,7 +251,7 @@ export default function ChatClient() {
     try {
       await streamReply(nextMessages);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Request failed.");
+      setError(err instanceof Error ? err.message : t("chatRequestFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -269,7 +277,7 @@ export default function ChatClient() {
         files?: Array<{ name?: string }>;
       };
       if (!response.ok) {
-        throw new Error(payload.error || "Upload failed.");
+        throw new Error(payload.error || t("uploadFailed"));
       }
       const names =
         payload.files?.map((entry) => entry.name).filter(Boolean) ||
@@ -284,7 +292,7 @@ export default function ChatClient() {
         fileInputRef.current.value = "";
       }
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Upload failed.");
+      setUploadError(err instanceof Error ? err.message : t("uploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -361,30 +369,31 @@ export default function ChatClient() {
             ◼
           </span>
           <div>
-            <p className="brand-name">Sandboxed Agent</p>
-            <p className="brand-tagline">Dual-sandbox agent runtime</p>
+            <p className="brand-name">{t("brandName")}</p>
+            <p className="brand-tagline">{t("brandTagline")}</p>
           </div>
         </div>
         <nav className="nav">
-          <Link href="/#product">Product</Link>
-          <Link href="/architecture">Architecture</Link>
-          <Link href="/examples">Examples</Link>
-          <Link href="/contact">Contact</Link>
+          <Link href="/#product">{t("navProduct")}</Link>
+          <Link href="/architecture">{t("navArchitecture")}</Link>
+          <Link href="/examples">{t("navExamples")}</Link>
+          <Link href="/contact">{t("navContact")}</Link>
         </nav>
-        <Link className="button cta ghost" href="/">
-          Back to overview
-        </Link>
+        <div className="top-bar-actions">
+          <Link className="button cta ghost" href="/">
+            {t("ctaBackOverview")}
+          </Link>
+          <LanguageToggle />
+        </div>
       </header>
 
       <section className="chat-shell">
         <div className="panel-header">
           <div>
-            <p className="panel-title">Live agent console</p>
-            <p className="panel-subtitle">
-              Pyodide + CPython with JSON output and image previews
-            </p>
+            <p className="panel-title">{t("chatTitle")}</p>
+            <p className="panel-subtitle">{t("chatSubtitle")}</p>
           </div>
-          <span className="status-pill">Live</span>
+          <span className="status-pill">{t("chatStatus")}</span>
         </div>
 
         <div className="chat-main">
@@ -392,10 +401,8 @@ export default function ChatClient() {
             {images.length > 0 ? (
               <section className="image-panel">
                 <div>
-                  <p className="upload-title">Images</p>
-                  <p className="upload-subtitle">
-                    Generated plots appear here and can be downloaded.
-                  </p>
+                  <p className="upload-title">{t("imagePanelTitle")}</p>
+                  <p className="upload-subtitle">{t("imagePanelSubtitle")}</p>
                 </div>
                 <div className="image-grid">
                   {images.map((path) => (
@@ -404,14 +411,16 @@ export default function ChatClient() {
                         type="button"
                         className="image-preview"
                         onClick={() => setActiveImage(path)}
-                        aria-label={`Open ${path.split("/").pop()}`}
+                        aria-label={tf("openImageAria", {
+                          name: path.split("/").pop() || "",
+                        })}
                       >
                         <img src={imageUrl(path)} alt={path} />
                       </button>
                       <div className="image-meta">
                         <span>{path.split("/").pop()}</span>
                         <a href={imageUrl(path, true)} download>
-                          Download
+                          {t("imageDownload")}
                         </a>
                       </div>
                     </div>
@@ -422,14 +431,16 @@ export default function ChatClient() {
 
             <section className="upload-panel">
               <div>
-                <p className="upload-title">Session files</p>
+                <p className="upload-title">{t("sessionFilesTitle")}</p>
                 <p className="upload-subtitle">
-                  Uploaded files are copied to <span>/data</span> for each run.
+                  {t("sessionFilesSubtitlePrefix")}
+                  <span>/data</span>
+                  {t("sessionFilesSubtitleSuffix")}
                 </p>
               </div>
               <div className="upload-actions">
                 <label className="button ghost upload-button">
-                  Choose files
+                  {t("chooseFiles")}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -443,7 +454,7 @@ export default function ChatClient() {
                   onClick={handleUpload}
                   disabled={!pendingFiles.length || uploading || !sessionId}
                 >
-                  {uploading ? "Uploading..." : "Upload"}
+                  {uploading ? t("uploading") : t("upload")}
                 </button>
               </div>
               <div className="upload-meta">
@@ -456,7 +467,7 @@ export default function ChatClient() {
                           type="button"
                           className="upload-remove"
                           onClick={() => handleRemovePending(index)}
-                          aria-label={`Remove ${file.name}`}
+                          aria-label={tf("removeFileAria", { name: file.name })}
                         >
                           x
                         </button>
@@ -464,10 +475,12 @@ export default function ChatClient() {
                     ))}
                   </div>
                 ) : (
-                  <p>No files selected.</p>
+                  <p>{t("noFilesSelected")}</p>
                 )}
                 {uploadedFiles.length > 0 ? (
-                  <p>Uploaded: {uploadedFiles.join(", ")}</p>
+                  <p>
+                    {t("uploadedLabel")} {uploadedFiles.join(", ")}
+                  </p>
                 ) : null}
                 {uploadError ? <p className="notice">{uploadError}</p> : null}
               </div>
@@ -482,7 +495,7 @@ export default function ChatClient() {
                   className={`message ${message.role}`}
                 >
                   <span className="message-role">
-                    {message.role === "user" ? "You" : "Agent"}
+                    {message.role === "user" ? t("youLabel") : t("agentLabel")}
                   </span>
                   <span className="message-content">{message.content}</span>
                 </div>
@@ -492,14 +505,14 @@ export default function ChatClient() {
             <form className="form" onSubmit={handleSubmit}>
               <input
                 type="text"
-                placeholder="Ask the agent to run a task"
+                placeholder={t("chatInputPlaceholder")}
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 disabled={isLoading}
-                aria-label="Message"
+                aria-label={t("chatInputAria")}
               />
               <button type="submit" disabled={isLoading || !input.trim()}>
-                {isLoading ? "Sending..." : "Send"}
+                {isLoading ? t("sending") : t("send")}
               </button>
             </form>
 
@@ -522,7 +535,7 @@ export default function ChatClient() {
               type="button"
               className="image-modal-close"
               onClick={() => setActiveImage(null)}
-              aria-label="Close image preview"
+              aria-label={t("closeImageAria")}
             >
               ×
             </button>

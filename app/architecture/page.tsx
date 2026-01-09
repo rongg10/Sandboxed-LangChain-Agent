@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import LanguageToggle from "../components/LanguageToggle";
+import { useLanguage } from "../components/LanguageProvider";
 
 export default function ArchitecturePage() {
+  const { t } = useLanguage();
   return (
     <main className="page">
       <header className="top-bar">
@@ -9,72 +14,54 @@ export default function ArchitecturePage() {
             ◼
           </span>
           <div>
-            <p className="brand-name">Sandboxed Agent</p>
-            <p className="brand-tagline">Dual-sandbox agent runtime</p>
+            <p className="brand-name">{t("brandName")}</p>
+            <p className="brand-tagline">{t("brandTagline")}</p>
           </div>
         </div>
         <nav className="nav">
-          <Link href="/#product">Product</Link>
-          <Link href="/architecture">Architecture</Link>
-          <Link href="/examples">Examples</Link>
-          <Link href="/contact">Contact</Link>
+          <Link href="/#product">{t("navProduct")}</Link>
+          <Link href="/architecture">{t("navArchitecture")}</Link>
+          <Link href="/examples">{t("navExamples")}</Link>
+          <Link href="/contact">{t("navContact")}</Link>
         </nav>
-        <Link className="button cta ghost" href="/chat">
-          Open console
-        </Link>
+        <div className="top-bar-actions">
+          <Link className="button cta ghost" href="/chat">
+            {t("ctaOpenConsole")}
+          </Link>
+          <LanguageToggle />
+        </div>
       </header>
 
       <section className="examples-hero">
         <div>
-          <p className="eyebrow">Architecture</p>
-          <h1>Two sandboxes, one unified interface.</h1>
-          <p className="subhead">
-            A lightweight UI forwards requests to a FastAPI service that routes
-            each task to Pyodide (fast) or CPython (full data science stack),
-            then returns JSON plus images and downloads.
-          </p>
+          <p className="eyebrow">{t("architectureEyebrow")}</p>
+          <h1>{t("architectureTitle")}</h1>
+          <p className="subhead">{t("architectureSubtitle")}</p>
         </div>
       </section>
 
       <section className="info-grid">
         <div className="info-card">
-          <h2>Frontend</h2>
-          <p>
-            Next.js renders the UI, streams responses, and displays images with
-            download links.
-          </p>
+          <h2>{t("frontendTitle")}</h2>
+          <p>{t("frontendText")}</p>
         </div>
         <div className="info-card">
-          <h2>Backend router</h2>
-          <p>
-            FastAPI receives requests, enforces limits, and selects Pyodide or
-            CPython based on libraries and workload.
-          </p>
+          <h2>{t("backendRouterTitle")}</h2>
+          <p>{t("backendRouterText")}</p>
         </div>
         <div className="info-card">
-          <h2>Sandbox A (Pyodide)</h2>
-          <p>
-            Node + Pyodide for fast checks, strict limits, and quick validation
-            tasks.
-          </p>
+          <h2>{t("sandboxATitle")}</h2>
+          <p>{t("sandboxAText")}</p>
         </div>
         <div className="info-card">
-          <h2>Sandbox B (CPython)</h2>
-          <p>
-            Full data science stack with pandas, numpy, matplotlib, and seaborn
-            for analysis and plotting.
-          </p>
+          <h2>{t("sandboxBTitle")}</h2>
+          <p>{t("sandboxBText")}</p>
         </div>
       </section>
 
       <section className="info-card">
-        <h2>How it was developed</h2>
-        <p>
-          The project started as a minimal Pyodide agent and evolved into a
-          dual-sandbox system. The team added routing logic, image handling, and
-          session storage to support data science workflows without losing the
-          safety of lightweight execution.
-        </p>
+        <h2>{t("developedTitle")}</h2>
+        <p>{t("developedText")}</p>
       </section>
     </main>
   );

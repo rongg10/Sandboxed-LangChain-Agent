@@ -1,5 +1,6 @@
 import "./globals.css";
 import { Newsreader, Space_Grotesk } from "next/font/google";
+import { LanguageProvider } from "./components/LanguageProvider";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -25,7 +26,9 @@ export default function RootLayout({
       lang="en"
       className={`${spaceGrotesk.variable} ${newsreader.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <LanguageProvider>{children}</LanguageProvider>
+      </body>
     </html>
   );
 }

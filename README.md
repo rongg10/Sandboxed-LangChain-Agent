@@ -1,29 +1,32 @@
 # Sandboxed Agent
 
-A lightweight agent that runs short Python snippets inside a Node + Pyodide
-sandbox and returns structured JSON output. The UI is a Next.js app, while the
-backend is a FastAPI service that executes the agent and streams results.
+Dual-sandbox agent runtime with a Next.js UI and a FastAPI backend. Lightweight
+tasks run in Pyodide, heavier data science work runs in CPython. Responses are
+structured JSON, with images previewable and downloadable from the UI.
+
+## Highlights
+
+- Two sandboxes: Pyodide for fast checks, CPython for pandas/numpy/matplotlib/seaborn.
+- Streaming replies (SSE) with stdout, stderr, exit code, and timing info.
+- Disk-backed per-session uploads mounted at `/data` for each run.
+- Images saved under `/data/outputs` are surfaced in the UI.
+- Language toggle (EN/ZH) in the top-right of the UI.
 
 ## Architecture
 
-- Frontend: Next.js UI + API routes for streaming and file upload proxying.
-- Backend: FastAPI service that runs the LangChain agent and sandbox tool.
-- Sandbox A: Node + Pyodide runner with best-effort CPU/file/memory limits.
-- Sandbox B: CPython subprocess for pandas/numpy/matplotlib/seaborn workloads.
+- Frontend: Next.js UI + API routes proxying chat and file endpoints.
+- Backend: FastAPI service with routing logic and session storage.
+- Sandbox A (Pyodide): Node + Pyodide with tight CPU/memory/file limits.
+- Sandbox B (CPython): Subprocess runner with full Python ecosystem.
 
-## Features
+## Local setup
 
-- Server-side Python execution through Pyodide or CPython
-- Streaming responses (SSE)
-- Disk-backed per-session file uploads (mounted at `/data` during runs)
-- Best-effort resource limits and timeouts
-
-## Requirements
+Requirements:
 
 - Node.js 18+
 - Python 3.11+
 
-## Local setup
+Install:
 
 ```bash
 python -m venv .venv
@@ -34,14 +37,14 @@ npm install
 
 ## Run locally
 
-Start the backend:
+Backend:
 
 ```bash
 export OPENAI_API_KEY=your_key
 uvicorn backend.server:app --host 0.0.0.0 --port 10000
 ```
 
-Start the frontend:
+Frontend:
 
 ```bash
 export BACKEND_URL=http://localhost:10000
@@ -50,37 +53,48 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+## Session files and images
+
+- Each request carries a `session_id` (stored in `sessionStorage`).
+- Uploaded files are stored on disk per session and copied into `/data` for each run.
+- If the agent creates images, save them to `/data/outputs/*.png` (or jpg/webp/gif).
+- After execution, `/data` is copied back to the session directory so outputs persist.
+- Sessions are cleaned up on chat exit and by TTL.
+
 ## Environment variables
 
 Frontend:
 
-- `BACKEND_URL` (URL of the FastAPI service)
+- `BACKEND_URL` - URL of the FastAPI service.
 
 Backend:
 
-- `OPENAI_API_KEY` (required)
-- `SANDBOX_AS_MB` (address space cap in MB; set `0` to disable)
-- `SANDBOX_TIMEOUT_S` (sandbox wall-clock timeout)
-- `CPYTHON_BIN` (override CPython executable)
-- `CPYTHON_TIMEOUT_S` (CPython wall-clock timeout)
-- `CPYTHON_FSIZE_MB` (CPython file size cap)
-- `CPYTHON_NOFILE` (CPython open file limit)
-- `CPYTHON_AS_MB` (CPython address space cap; `0` disables)
-- `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX` (request throttling)
-- `MAX_INPUT_CHARS` (input size cap)
-- `SESSION_BASE_DIR` (default `/tmp/sandbox-sessions`)
-- `SESSION_TTL_S` (default `600`, 10 minutes)
-- `SESSION_MAX_BYTES` (default `5242880`, 5MB)
+- `OPENAI_API_KEY` - required for the agent.
+- `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX` - request throttling.
+- `MAX_INPUT_CHARS` - input size cap.
+- `SESSION_BASE_DIR` - session root (default `/tmp/sandbox-sessions`).
+- `SESSION_TTL_S` - session TTL in seconds (default `600`).
+- `SESSION_MAX_BYTES` - max bytes per session (default `5242880`, 5MB).
 
-## Session files
+Pyodide sandbox:
 
-Uploads are stored on disk per `session_id`, copied into the Pyodide filesystem
-at `/data` for each run, and cleared when the user leaves the chat or when TTL
-expires. The frontend keeps a session ID in `sessionStorage`.
+- `SANDBOX_TIMEOUT_S` - wall-clock timeout (default `6`).
+- `SANDBOX_AS_MB` - address space cap in MB (default `768`, set `0` to disable).
+- `PYODIDE_INDEX_URL` - override Pyodide assets location.
+- `SANDBOX_ECHO_CODE` - include executed code in JSON output (`1`/`true`).
+
+CPython sandbox:
+
+- `CPYTHON_BIN` - override Python executable (falls back to `PYTHON_BIN` or `python`).
+- `CPYTHON_TIMEOUT_S` - wall-clock timeout (default `15`).
+- `CPYTHON_FSIZE_MB` - file size cap (default `50`).
+- `CPYTHON_NOFILE` - open file limit (default `64`).
+- `CPYTHON_AS_MB` - address space cap (default `0`, disabled).
+- `CPYTHON_DATA_ROOT` - working data dir (default `/data`).
+- `SANDBOX_ECHO_CODE` - include executed code in JSON output (`1`/`true`).
 
 ## Notes
 
 - This is a best-effort sandbox, not a hardened security boundary.
-- Pyodide assets are loaded from the local `node_modules/pyodide` package.
-- If you override `PYODIDE_INDEX_URL`, use a local filesystem path.
-- Sandbox B uses the system Python environment, so install pandas/numpy/matplotlib/seaborn.
+- Pyodide assets load from the local `node_modules/pyodide` package by default.
+- CPython sandbox uses the system Python environment, so install pandas/numpy/matplotlib/seaborn there.
