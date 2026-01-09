@@ -304,8 +304,9 @@ h2 {
 .chat-main {
   display: grid;
   grid-template-columns: 420px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
   min-height: 0;
   flex: 1;
 }
@@ -315,6 +316,7 @@ h2 {
   flex-direction: column;
   gap: 16px;
   min-height: 0;
+  height: 100%;
 }
 
 .upload-panel {
@@ -410,8 +412,8 @@ h2 {
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(216, 224, 234, 0.8);
   flex: 1;
-  min-height: 420px;
-  min-height: 320px;
+  min-height: 0;
+  max-height: 100%;
   overflow: hidden;
 }
 
