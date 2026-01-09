@@ -34,6 +34,7 @@ export default function ChatClient() {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
+  const [activeImage, setActiveImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -388,18 +389,25 @@ export default function ChatClient() {
 
         <div className="chat-main">
           <div className="chat-side">
-            <section className="image-panel">
-              <div>
-                <p className="upload-title">Images</p>
-                <p className="upload-subtitle">
-                  Generated plots appear here and can be downloaded.
-                </p>
-              </div>
-              {images.length > 0 ? (
+            {images.length > 0 ? (
+              <section className="image-panel">
+                <div>
+                  <p className="upload-title">Images</p>
+                  <p className="upload-subtitle">
+                    Generated plots appear here and can be downloaded.
+                  </p>
+                </div>
                 <div className="image-grid">
                   {images.map((path) => (
                     <div className="image-card" key={path}>
-                      <img src={imageUrl(path)} alt={path} />
+                      <button
+                        type="button"
+                        className="image-preview"
+                        onClick={() => setActiveImage(path)}
+                        aria-label={`Open ${path.split("/").pop()}`}
+                      >
+                        <img src={imageUrl(path)} alt={path} />
+                      </button>
                       <div className="image-meta">
                         <span>{path.split("/").pop()}</span>
                         <a href={imageUrl(path, true)} download>
@@ -409,10 +417,8 @@ export default function ChatClient() {
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="image-empty">No images yet.</p>
-              )}
-            </section>
+              </section>
+            ) : null}
 
             <section className="upload-panel">
               <div>
@@ -501,6 +507,29 @@ export default function ChatClient() {
           </section>
         </div>
       </section>
+      {activeImage ? (
+        <div
+          className="image-modal"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setActiveImage(null)}
+        >
+          <div
+            className="image-modal-content"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="image-modal-close"
+              onClick={() => setActiveImage(null)}
+              aria-label="Close image preview"
+            >
+              ×
+            </button>
+            <img src={imageUrl(activeImage)} alt={activeImage} />
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
