@@ -13,7 +13,8 @@ SYSTEM_PROMPT = (
     "decide what to do next: fix and rerun if status=error/timeout, or parse/summarize "
     "stdout when status=ok/warning. If stdout is '(no output)' but a result is needed, "
     "rerun with explicit print statements. Keep responses concise and explain results."
-    " If session files are provided, read them from /data."
+    " If a filename is mentioned, assume it lives in /data and use absolute paths."
+    " If a file is missing, run os.listdir('/data') and retry."
 )
 
 

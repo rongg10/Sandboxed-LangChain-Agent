@@ -79,6 +79,34 @@ def _format_messages(messages: list[Message]) -> str:
     return "\n\n".join(parts)
 
 
+def _list_session_files(session_dir: str) -> tuple[list[str], bool]:
+    items: list[str] = []
+    try:
+        for root, _, files in os.walk(session_dir):
+            for name in files:
+                rel = os.path.relpath(os.path.join(root, name), session_dir)
+                items.append(rel)
+                if len(items) >= 200:
+                    return sorted(items), True
+    except Exception:
+        return [], False
+    return sorted(items), False
+
+
+def _append_session_context(prompt: str, session_files: list[str], truncated: bool) -> str:
+    if not session_files:
+        return prompt
+    listing = "\n".join(f"- {name}" for name in session_files)
+    suffix = (
+        "Session files available in /data:\n"
+        f"{listing}\n"
+        "Use absolute paths under /data when opening files."
+    )
+    if truncated:
+        suffix += "\n(Additional files omitted from this list.)"
+    return f"{prompt}\n\n{suffix}"
+
+
 def _resolve_session_dir(session_id: str | None) -> str | None:
     if not session_id:
         return None
@@ -184,9 +212,16 @@ def chat(body: ChatBody, request: Request) -> dict[str, str]:
 
     try:
         session_dir = _resolve_session_dir(body.session_id)
+        session_files = []
+        truncated = False
+        if session_dir:
+            session_files, truncated = _list_session_files(session_dir)
         token = set_session_files_dir(session_dir)
         try:
-            reply = agent(_format_messages(messages))
+            prompt = _append_session_context(
+                _format_messages(messages), session_files, truncated
+            )
+            reply = agent(prompt)
         finally:
             reset_session_files_dir(token)
     except Exception as exc:
@@ -216,8 +251,14 @@ async def chat_stream(body: ChatBody, request: Request):
             detail="Message too long. Please shorten your request and try again.",
         )
 
-    prompt = _format_messages(messages)
     session_dir = _resolve_session_dir(body.session_id)
+    session_files = []
+    truncated = False
+    if session_dir:
+        session_files, truncated = _list_session_files(session_dir)
+    prompt = _append_session_context(
+        _format_messages(messages), session_files, truncated
+    )
 
     async def event_stream():
         try:

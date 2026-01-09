@@ -1,57 +1,80 @@
-# Sandboxed LangChain Agent
+# Sandboxed Agent
 
-A small LangChain-based agent that can execute Python code in a constrained Node + Pyodide "sandbox" and return stdout/stderr to the model.
+A lightweight agent that runs short Python snippets inside a Node + Pyodide
+sandbox and returns structured JSON output. The UI is a Next.js app, while the
+backend is a FastAPI service that executes the agent and streams results.
 
-## Setup
+## Architecture
+
+- Frontend: Next.js UI + API routes for streaming and file upload proxying.
+- Backend: FastAPI service that runs the LangChain agent and sandbox tool.
+- Sandbox: Node + Pyodide runner with best-effort CPU/file/memory limits.
+
+## Features
+
+- Server-side Python execution through Pyodide
+- Streaming responses (SSE)
+- Disk-backed per-session file uploads (mounted at `/data` during runs)
+- Best-effort resource limits and timeouts
+
+## Requirements
+
+- Node.js 18+
+- Python 3.11+
+
+## Local setup
 
 ```bash
-node --version  # requires Node 18+
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 npm install
 ```
 
-## Run
+## Run locally
+
+Start the backend:
 
 ```bash
 export OPENAI_API_KEY=your_key
-python main.py "Calculate the 10th Fibonacci number using code"
+uvicorn backend.server:app --host 0.0.0.0 --port 10000
 ```
 
-If you run without a prompt, the script starts an interactive loop.
+Start the frontend:
 
-## Session files
+```bash
+export BACKEND_URL=http://localhost:10000
+npm run dev
+```
 
-The backend supports disk-backed uploads per chat session. Files are copied into
-the Pyodide filesystem at `/data` for each run.
+Open `http://localhost:3000`.
 
-Environment knobs:
+## Environment variables
 
+Frontend:
+
+- `BACKEND_URL` (URL of the FastAPI service)
+
+Backend:
+
+- `OPENAI_API_KEY` (required)
+- `SANDBOX_AS_MB` (address space cap in MB; set `0` to disable)
+- `SANDBOX_TIMEOUT_S` (sandbox wall-clock timeout)
+- `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX` (request throttling)
+- `MAX_INPUT_CHARS` (input size cap)
 - `SESSION_BASE_DIR` (default `/tmp/sandbox-sessions`)
 - `SESSION_TTL_S` (default `600`, 10 minutes)
 - `SESSION_MAX_BYTES` (default `5242880`, 5MB)
 
-## Notes on the sandbox
+## Session files
 
-This is a best-effort sandbox meant to reduce risk, not a hardened security boundary. It:
+Uploads are stored on disk per `session_id`, copied into the Pyodide filesystem
+at `/data` for each run, and cleared when the user leaves the chat or when TTL
+expires. The frontend keeps a session ID in `sessionStorage`.
 
-- Runs code via Node + Pyodide (WASM) in a temp directory.
-- Applies CPU, file size, and open file limits (best-effort per OS).
-- Enforces a short wall-clock timeout in the parent process.
+## Notes
 
-Pyodide in Node is safer than a raw Python subprocess, but it is still not a
-hardened sandbox. Python can access the JS bridge, and Node can access the OS
-and network unless you add extra containment.
+- This is a best-effort sandbox, not a hardened security boundary.
+- Pyodide assets are loaded from the local `node_modules/pyodide` package.
+- If you override `PYODIDE_INDEX_URL`, use a local filesystem path.
 
-By default, the runner loads Pyodide assets from the local `node_modules/pyodide`
-package. If you override `PYODIDE_INDEX_URL`, it should be a local filesystem
-path to the Pyodide assets (not a CDN URL).
-
-The sandbox tool returns JSON (status/stdout/stderr/exit_code/timed_out). Set
-`SANDBOX_ECHO_CODE=1` to include the executed code in the tool output.
-`SANDBOX_AS_MB` controls the address-space limit (MB) for the Node+Pyodide
-process; increase it if you see out-of-memory errors (set to `0` to skip
-setting the limit).
-
-If you need stronger isolation, swap the tool implementation to use Docker, gVisor, or a VM.
