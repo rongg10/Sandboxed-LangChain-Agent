@@ -89,6 +89,8 @@ class CpythonSandboxTool(BaseTool):
                 except Exception:
                     pass
 
+            completed = None
+            error_payload = None
             with _CPYTHON_LOCK:
                 try:
                     os.makedirs(data_root, exist_ok=True)
@@ -108,7 +110,7 @@ class CpythonSandboxTool(BaseTool):
                         preexec_fn=_limit_resources if resource is not None else None,
                     )
                 except FileNotFoundError:
-                    payload = {
+                    error_payload = {
                         "status": "error",
                         "exit_code": None,
                         "timed_out": False,
@@ -117,11 +119,8 @@ class CpythonSandboxTool(BaseTool):
                         "stdout_truncated": False,
                         "stderr_truncated": False,
                     }
-                    if echo_code:
-                        payload["code"] = code
-                    return json.dumps(payload, ensure_ascii=True)
                 except subprocess.TimeoutExpired:
-                    payload = {
+                    error_payload = {
                         "status": "timeout",
                         "exit_code": None,
                         "timed_out": True,
@@ -130,13 +129,15 @@ class CpythonSandboxTool(BaseTool):
                         "stdout_truncated": False,
                         "stderr_truncated": False,
                     }
-                    if echo_code:
-                        payload["code"] = code
-                    return json.dumps(payload, ensure_ascii=True)
+                finally:
                     if session_dir and os.path.isdir(session_dir):
                         self._copy_tree(data_root, session_dir)
-                finally:
                     self._clear_dir_contents(data_root)
+
+            if error_payload is not None:
+                if echo_code:
+                    error_payload["code"] = code
+                return json.dumps(error_payload, ensure_ascii=True)
 
             stdout = completed.stdout.strip()
             stderr = completed.stderr.strip()
