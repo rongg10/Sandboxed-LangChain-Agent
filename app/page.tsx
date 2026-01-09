@@ -43,8 +43,8 @@ export default function HomePage() {
           <Link href="/contact">{t("navContact")}</Link>
         </nav>
         <div className="top-bar-actions">
-          <Link className="button cta" href="/#demo">
-            {t("ctaRequestDemo")}
+          <Link className="button cta" href="/chat">
+            {t("ctaStartSession")}
           </Link>
           <LanguageToggle />
         </div>
@@ -55,14 +55,6 @@ export default function HomePage() {
           <p className="eyebrow">{t("heroEyebrow")}</p>
           <h1>{t("heroTitle")}</h1>
           <p className="subhead">{t("heroSubhead")}</p>
-          <div className="hero-actions">
-            <button className="button primary" type="button" onClick={handleQuickStart}>
-              {t("ctaStartSession")}
-            </button>
-            <Link className="button ghost" href="/architecture">
-              {t("ctaExploreArchitecture")}
-            </Link>
-          </div>
           <form className="session-form" onSubmit={handleStart}>
             <input
               type="text"
