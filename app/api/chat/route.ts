@@ -188,6 +188,7 @@ export async function POST(request: Request) {
       const payload = (await response.json()) as {
         reply?: string;
         detail?: string;
+        images?: string[];
       };
       if (!response.ok || !payload.reply) {
         return NextResponse.json(
@@ -195,7 +196,10 @@ export async function POST(request: Request) {
           { status: response.status }
         );
       }
-      return NextResponse.json({ reply: payload.reply });
+      return NextResponse.json({
+        reply: payload.reply,
+        images: Array.isArray(payload.images) ? payload.images : [],
+      });
     }
 
     const reply = await runAgent(messages);

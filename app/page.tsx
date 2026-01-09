@@ -30,7 +30,7 @@ export default function HomePage() {
           </span>
           <div>
             <p className="brand-name">Sandboxed Agent</p>
-            <p className="brand-tagline">Node + Pyodide sandbox runner</p>
+            <p className="brand-tagline">Dual-sandbox agent runtime</p>
           </div>
         </div>
         <nav className="nav">
@@ -46,18 +46,19 @@ export default function HomePage() {
 
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">Pyodide-backed execution</p>
-          <h1>Run short Python tasks in a constrained sandbox.</h1>
+          <p className="eyebrow">Pyodide + CPython execution</p>
+          <h1>Run fast checks or full data science workflows safely.</h1>
           <p className="subhead">
-            Execute code via Node + Pyodide with CPU, file, and time limits, then
-            read structured JSON output for stdout, stderr, and exit status.
+            Route lightweight work to Pyodide and heavier analysis to CPython
+            with pandas, numpy, matplotlib, and seaborn. Outputs stream back as
+            structured JSON, plus images you can preview and download.
           </p>
           <div className="hero-actions">
             <button className="button primary" type="button" onClick={handleQuickStart}>
               Start a session
             </button>
             <Link className="button ghost" href="/architecture">
-              View architecture
+              Explore architecture
             </Link>
           </div>
           <form className="session-form" onSubmit={handleStart}>
@@ -110,9 +111,9 @@ return the largest gap found.`}</p>
             </div>
           </div>
           <div className="trust-row">
-            <span>Best-effort resource limits</span>
-            <span>Structured JSON output</span>
-            <span>Local Pyodide assets</span>
+            <span>Two sandbox modes</span>
+            <span>DS libraries ready</span>
+            <span>Image preview + download</span>
           </div>
         </div>
 
@@ -121,7 +122,7 @@ return the largest gap found.`}</p>
             <div>
               <p className="panel-title">Session preview</p>
               <p className="panel-subtitle">
-                Quick checks before you ship
+                From quick checks to full analysis
               </p>
             </div>
             <span className="status-pill">Sandbox</span>
@@ -136,13 +137,13 @@ return the largest gap found.`}</p>
             <div className="preview-item">
               <span className="preview-label">Agent</span>
               <span className="preview-text">
-                Ran sandboxed Python and returned JSON output
+                Chose Pyodide or CPython and returned JSON output
               </span>
             </div>
             <div className="preview-item">
               <span className="preview-label">Audit</span>
               <span className="preview-text">
-                Captured stdout, stderr, exit code, and timeout flag
+                Captured stdout, stderr, exit code, and images
               </span>
             </div>
           </div>
@@ -156,21 +157,22 @@ return the largest gap found.`}</p>
         <div className="info-card">
           <h2>Product</h2>
           <p>
-            A lightweight agent that runs short Python snippets in Node + Pyodide
-            and returns structured JSON results.
+            A dual-sandbox agent that runs quick checks in Pyodide or full data
+            science jobs in CPython, returning structured JSON and images.
           </p>
         </div>
         <div className="info-card">
           <h2>Architecture</h2>
           <p>
-            Two services: a Next.js UI and a FastAPI backend that executes
-            sandboxed runs with Node + Pyodide.
+            Next.js UI + FastAPI backend with a router that picks Pyodide or
+            CPython based on workload and libraries.
           </p>
         </div>
         <div className="info-card">
           <h2>Contact</h2>
           <p>
-            Reach out for access, pricing, or deployment guidance.
+            Reach out for access, pricing, or help deploying the dual-sandbox
+            stack.
           </p>
         </div>
       </section>
@@ -179,7 +181,7 @@ return the largest gap found.`}</p>
         <div>
           <h2>Try the live console</h2>
           <p>
-            Start a session and inspect the JSON output from each run.
+            Run a prompt, view JSON output, and preview or download images.
           </p>
         </div>
         <Link className="button primary" href="/chat">

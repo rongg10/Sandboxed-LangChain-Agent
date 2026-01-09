@@ -4,7 +4,7 @@ import time
 from typing import Literal
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
 from main import build_agent, build_agent_streamer
@@ -91,6 +91,29 @@ def _list_session_files(session_dir: str) -> tuple[list[str], bool]:
     except Exception:
         return [], False
     return sorted(items), False
+
+
+def _list_session_images(session_dir: str) -> list[str]:
+    files, _ = _list_session_files(session_dir)
+    image_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
+    images = []
+    for name in files:
+        _, ext = os.path.splitext(name)
+        if ext.lower() in image_exts:
+            images.append(name)
+    return images
+
+
+def _resolve_session_file(session_id: str, rel_path: str) -> str:
+    files_dir = get_session_files_dir(session_id)
+    cleaned = os.path.normpath(rel_path).lstrip(os.sep).lstrip("/")
+    if not cleaned or cleaned.startswith(".."):
+        raise HTTPException(status_code=400, detail="Invalid file path.")
+    abs_path = os.path.abspath(os.path.join(files_dir, cleaned))
+    base = os.path.abspath(files_dir)
+    if not abs_path.startswith(base + os.sep) and abs_path != base:
+        raise HTTPException(status_code=400, detail="Invalid file path.")
+    return abs_path
 
 
 def _append_session_context(prompt: str, session_files: list[str], truncated: bool) -> str:
@@ -192,6 +215,19 @@ def clear_files(payload: SessionRequest) -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/files/download")
+def download_file(session_id: str, path: str):
+    try:
+        cleaned = validate_session_id(session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    file_path = _resolve_session_file(cleaned, path)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found.")
+    update_session_access(cleaned)
+    return FileResponse(file_path)
+
+
 @app.post("/chat")
 def chat(body: ChatBody, request: Request) -> dict[str, str]:
     _check_rate_limit(_get_client_ip(request))
@@ -224,13 +260,14 @@ def chat(body: ChatBody, request: Request) -> dict[str, str]:
             reply = agent(prompt)
         finally:
             reset_session_files_dir(token)
+        session_images = _list_session_images(session_dir) if session_dir else []
     except Exception as exc:
         raise HTTPException(
             status_code=500,
             detail="Something went wrong while running the agent.",
         ) from exc
 
-    return {"reply": reply}
+    return {"reply": reply, "images": session_images}
 
 
 @app.post("/chat/stream")
@@ -269,6 +306,11 @@ async def chat_stream(body: ChatBody, request: Request):
                         {"type": "token", "value": token}, ensure_ascii=True
                     )
                     yield f"data: {payload}\n\n"
+                session_images = _list_session_images(session_dir) if session_dir else []
+                images_payload = json.dumps(
+                    {"type": "images", "value": session_images}, ensure_ascii=True
+                )
+                yield f"data: {images_payload}\n\n"
                 yield 'data: {"type":"done"}\n\n'
             finally:
                 reset_session_files_dir(token_ctx)

@@ -1,4 +1,4 @@
-import { readFile, readdir, stat } from "node:fs/promises";
+import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loadPyodide } from "pyodide";
 
@@ -77,7 +77,26 @@ async function copyTree(srcDir, destDir) {
   }
 }
 
+async function exportTree(srcDir, destDir) {
+  await mkdir(destDir, { recursive: true });
+  const entries = pyodide.FS.readdir(srcDir).filter((name) => name !== "." && name !== "..");
+  for (const name of entries) {
+    const srcPath = path.posix.join(srcDir, name);
+    const destPath = path.join(destDir, name);
+    const stats = pyodide.FS.stat(srcPath);
+    if (pyodide.FS.isDir(stats.mode)) {
+      await exportTree(srcPath, destPath);
+    } else {
+      const data = pyodide.FS.readFile(srcPath);
+      await mkdir(path.dirname(destPath), { recursive: true });
+      await writeFile(destPath, data);
+    }
+  }
+}
+
 try {
+  await ensureDir("/data");
+  await ensureDir("/data/outputs");
   if (filesDir) {
     try {
       const stats = await stat(filesDir);
@@ -99,6 +118,16 @@ try {
     }
   }
   await pyodide.runPythonAsync(code);
+  if (filesDir) {
+    try {
+      await exportTree("/data", filesDir);
+    } catch (err) {
+      const detail = err?.stack || err?.message || String(err);
+      stderrChunks.push(
+        `Failed to export session files to ${filesDir}: ${detail}`
+      );
+    }
+  }
 } catch (err) {
   stderrChunks.push(err?.stack || String(err));
   const stderr = stderrChunks.join("");

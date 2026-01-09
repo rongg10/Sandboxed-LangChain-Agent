@@ -45,6 +45,7 @@ class CpythonSandboxTool(BaseTool):
         timeout_s = int(os.environ.get("CPYTHON_TIMEOUT_S", str(timeout_s)))
         python_bin = os.environ.get("CPYTHON_BIN", os.environ.get("PYTHON_BIN", "python"))
         session_dir = get_session_files_dir()
+        data_root = os.environ.get("CPYTHON_DATA_ROOT", "/data")
 
         with tempfile.TemporaryDirectory(prefix="cpython-sandbox-") as tmpdir:
             script_path = os.path.join(tmpdir, "snippet.py")
@@ -88,21 +89,13 @@ class CpythonSandboxTool(BaseTool):
                 except Exception:
                     pass
 
-            copied_paths: list[str] = []
-            data_root = "/data"
-
             with _CPYTHON_LOCK:
                 try:
                     os.makedirs(data_root, exist_ok=True)
+                    self._clear_dir_contents(data_root)
                     if session_dir and os.path.isdir(session_dir):
-                        for root, _, files in os.walk(session_dir):
-                            for name in files:
-                                src = os.path.join(root, name)
-                                rel = os.path.relpath(src, session_dir)
-                                dest = os.path.join(data_root, rel)
-                                os.makedirs(os.path.dirname(dest), exist_ok=True)
-                                shutil.copy2(src, dest)
-                                copied_paths.append(dest)
+                        self._copy_tree(session_dir, data_root)
+                    os.makedirs(os.path.join(data_root, "outputs"), exist_ok=True)
 
                     completed = subprocess.run(
                         [python_bin, script_path],
@@ -140,12 +133,10 @@ class CpythonSandboxTool(BaseTool):
                     if echo_code:
                         payload["code"] = code
                     return json.dumps(payload, ensure_ascii=True)
+                    if session_dir and os.path.isdir(session_dir):
+                        self._copy_tree(data_root, session_dir)
                 finally:
-                    for path in copied_paths:
-                        try:
-                            os.remove(path)
-                        except OSError:
-                            pass
+                    self._clear_dir_contents(data_root)
 
             stdout = completed.stdout.strip()
             stderr = completed.stderr.strip()
@@ -174,3 +165,29 @@ class CpythonSandboxTool(BaseTool):
 
     async def _arun(self, code: str, timeout_s: int = 15) -> str:
         raise NotImplementedError("CpythonSandboxTool does not support async")
+
+    def _clear_dir_contents(self, root: str) -> None:
+        if not os.path.isdir(root):
+            return
+        for name in os.listdir(root):
+            path = os.path.join(root, name)
+            try:
+                if os.path.isdir(path):
+                    shutil.rmtree(path)
+                else:
+                    os.remove(path)
+            except OSError:
+                continue
+
+    def _copy_tree(self, src: str, dest: str) -> None:
+        for base, _, files in os.walk(src):
+            rel = os.path.relpath(base, src)
+            target_dir = dest if rel == "." else os.path.join(dest, rel)
+            os.makedirs(target_dir, exist_ok=True)
+            for name in files:
+                src_path = os.path.join(base, name)
+                dest_path = os.path.join(target_dir, name)
+                try:
+                    shutil.copy2(src_path, dest_path)
+                except OSError:
+                    continue

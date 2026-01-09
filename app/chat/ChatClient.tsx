@@ -33,6 +33,7 @@ export default function ChatClient() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -167,20 +168,24 @@ export default function ChatClient() {
             continue;
           }
 
-          let payload: { type?: string; value?: string; message?: string };
+          let payload: { type?: string; value?: string[] | string; message?: string };
           try {
             payload = JSON.parse(data) as {
               type?: string;
-              value?: string;
+              value?: string[] | string;
               message?: string;
             };
           } catch {
             continue;
           }
 
-          if (payload.type === "token" && payload.value) {
+          if (payload.type === "token" && typeof payload.value === "string") {
             reply += payload.value;
             updateAssistantMessage(reply);
+          } else if (payload.type === "images") {
+            if (Array.isArray(payload.value)) {
+              setImages(payload.value);
+            }
           } else if (payload.type === "error") {
             throw new Error(payload.message || "Stream error.");
           } else if (payload.type === "done") {
@@ -306,6 +311,20 @@ export default function ChatClient() {
     }
   }
 
+  function imageUrl(path: string, download?: boolean) {
+    if (!sessionId) {
+      return "";
+    }
+    const params = new URLSearchParams({
+      session_id: sessionId,
+      path,
+    });
+    if (download) {
+      params.set("download", "1");
+    }
+    return `/api/files/download?${params.toString()}`;
+  }
+
   return (
     <main className="chat-page">
       <header className="top-bar">
@@ -315,7 +334,7 @@ export default function ChatClient() {
           </span>
           <div>
             <p className="brand-name">Sandboxed Agent</p>
-            <p className="brand-tagline">Node + Pyodide sandbox runner</p>
+            <p className="brand-tagline">Dual-sandbox agent runtime</p>
           </div>
         </div>
         <nav className="nav">
@@ -334,7 +353,7 @@ export default function ChatClient() {
           <div>
             <p className="panel-title">Live agent console</p>
             <p className="panel-subtitle">
-              Short runs with JSON stdout, stderr, and exit status
+              Pyodide + CPython with JSON output and image previews
             </p>
           </div>
           <span className="status-pill">Live</span>
@@ -373,14 +392,15 @@ export default function ChatClient() {
             {error ? <p className="notice">{error}</p> : null}
           </section>
 
-          <section className="upload-panel">
-            <div>
-              <p className="upload-title">Session files</p>
-              <p className="upload-subtitle">
-                Uploaded files are copied to <span>/data</span> for each run.
-              </p>
-            </div>
-            <div className="upload-actions">
+          <div className="chat-side">
+            <section className="upload-panel">
+              <div>
+                <p className="upload-title">Session files</p>
+                <p className="upload-subtitle">
+                  Uploaded files are copied to <span>/data</span> for each run.
+                </p>
+              </div>
+              <div className="upload-actions">
               <label className="button ghost upload-button">
                 Choose files
                 <input
@@ -424,7 +444,34 @@ export default function ChatClient() {
             ) : null}
               {uploadError ? <p className="notice">{uploadError}</p> : null}
             </div>
-          </section>
+            </section>
+
+            <section className="image-panel">
+              <div>
+                <p className="upload-title">Images</p>
+                <p className="upload-subtitle">
+                  Generated plots appear here and can be downloaded.
+                </p>
+              </div>
+              {images.length > 0 ? (
+                <div className="image-grid">
+                  {images.map((path) => (
+                    <div className="image-card" key={path}>
+                      <img src={imageUrl(path)} alt={path} />
+                      <div className="image-meta">
+                        <span>{path.split("/").pop()}</span>
+                        <a href={imageUrl(path, true)} download>
+                          Download
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="image-empty">No images yet.</p>
+              )}
+            </section>
+          </div>
         </div>
       </section>
     </main>

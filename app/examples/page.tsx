@@ -10,7 +10,7 @@ export default function ExamplesPage() {
           </span>
           <div>
             <p className="brand-name">Sandboxed Agent</p>
-            <p className="brand-tagline">Node + Pyodide sandbox runner</p>
+            <p className="brand-tagline">Dual-sandbox agent runtime</p>
           </div>
         </div>
         <nav className="nav">
@@ -28,7 +28,9 @@ export default function ExamplesPage() {
         <div className="panel-header">
           <div>
             <p className="panel-title">Example session</p>
-            <p className="panel-subtitle">File analysis with sandboxed code</p>
+            <p className="panel-subtitle">
+              File analysis with pandas + image-ready outputs
+            </p>
           </div>
           <span className="status-pill">Example</span>
         </div>

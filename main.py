@@ -17,7 +17,9 @@ SYSTEM_PROMPT = (
     "status=ok/warning. If stdout is '(no output)' but a result is needed, rerun "
     "with explicit print statements. Keep responses concise and explain results. "
     "If a filename is mentioned, assume it lives in /data and use absolute paths. "
-    "If a file is missing, run os.listdir('/data') and retry."
+    "If a file is missing, run os.listdir('/data') and retry. "
+    "If you generate plots or images, save them under /data/outputs and mention "
+    "the filenames in your response."
 )
 
 

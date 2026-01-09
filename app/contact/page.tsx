@@ -10,7 +10,7 @@ export default function ContactPage() {
           </span>
           <div>
             <p className="brand-name">Sandboxed Agent</p>
-            <p className="brand-tagline">Node + Pyodide sandbox runner</p>
+            <p className="brand-tagline">Dual-sandbox agent runtime</p>
           </div>
         </div>
         <nav className="nav">

@@ -10,7 +10,7 @@ export default function ArchitecturePage() {
           </span>
           <div>
             <p className="brand-name">Sandboxed Agent</p>
-            <p className="brand-tagline">Node + Pyodide sandbox runner</p>
+            <p className="brand-tagline">Dual-sandbox agent runtime</p>
           </div>
         </div>
         <nav className="nav">
@@ -27,11 +27,11 @@ export default function ArchitecturePage() {
       <section className="examples-hero">
         <div>
           <p className="eyebrow">Architecture</p>
-          <h1>Split frontend, backend, and sandboxed execution.</h1>
+          <h1>Two sandboxes, one unified interface.</h1>
           <p className="subhead">
-            The product is built as a lightweight UI that forwards requests to a
-            FastAPI service, which then runs Python inside a Node + Pyodide
-            sandbox and returns structured JSON output.
+            A lightweight UI forwards requests to a FastAPI service that routes
+            each task to Pyodide (fast) or CPython (full data science stack),
+            then returns JSON plus images and downloads.
           </p>
         </div>
       </section>
@@ -40,29 +40,29 @@ export default function ArchitecturePage() {
         <div className="info-card">
           <h2>Frontend</h2>
           <p>
-            Next.js renders the landing pages and chat UI, streams tokens, and
-            proxies file uploads to the backend service.
+            Next.js renders the UI, streams responses, and displays images with
+            download links.
           </p>
         </div>
         <div className="info-card">
-          <h2>Backend</h2>
+          <h2>Backend router</h2>
           <p>
-            FastAPI receives chat messages, enforces rate limits, and runs the
-            LangChain agent with the sandboxed Python tool.
+            FastAPI receives requests, enforces limits, and selects Pyodide or
+            CPython based on libraries and workload.
           </p>
         </div>
         <div className="info-card">
-          <h2>Sandbox</h2>
+          <h2>Sandbox A (Pyodide)</h2>
           <p>
-            Node + Pyodide executes code with best-effort CPU, file, and memory
-            caps, returning stdout/stderr/exit metadata.
+            Node + Pyodide for fast checks, strict limits, and quick validation
+            tasks.
           </p>
         </div>
         <div className="info-card">
-          <h2>Session storage</h2>
+          <h2>Sandbox B (CPython)</h2>
           <p>
-            Uploads are stored on disk per session, copied into /data for each
-            run, and cleared on exit or TTL expiry.
+            Full data science stack with pandas, numpy, matplotlib, and seaborn
+            for analysis and plotting.
           </p>
         </div>
       </section>
@@ -70,10 +70,10 @@ export default function ArchitecturePage() {
       <section className="info-card">
         <h2>How it was developed</h2>
         <p>
-          The project started as a minimal agent loop, then evolved into a
-          two-service deployment for reliability. The UI was built first to
-          validate workflows, followed by the sandbox runner, resource limits,
-          streaming, and file session support.
+          The project started as a minimal Pyodide agent and evolved into a
+          dual-sandbox system. The team added routing logic, image handling, and
+          session storage to support data science workflows without losing the
+          safety of lightweight execution.
         </p>
       </section>
     </main>
