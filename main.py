@@ -5,16 +5,19 @@ import re
 from typing import Any, AsyncIterator, Callable, Optional
 
 from sandbox_tool import SandboxedPythonTool
+from cpython_tool import CpythonSandboxTool
 
 SYSTEM_PROMPT = (
     "You are a careful assistant. When the user asks to calculate or to use code, "
-    "you must call the sandboxed_python tool. The tool returns JSON with fields "
-    "like status, stdout, stderr, exit_code, and timed_out. Read that output and "
-    "decide what to do next: fix and rerun if status=error/timeout, or parse/summarize "
-    "stdout when status=ok/warning. If stdout is '(no output)' but a result is needed, "
-    "rerun with explicit print statements. Keep responses concise and explain results."
-    " If a filename is mentioned, assume it lives in /data and use absolute paths."
-    " If a file is missing, run os.listdir('/data') and retry."
+    "you must call a Python execution tool. Use sandboxed_python for lightweight "
+    "tasks, and use cpython_python for data science work (pandas/numpy/matplotlib/"
+    "seaborn) or larger datasets. The tool returns JSON with fields like status, "
+    "stdout, stderr, exit_code, and timed_out. Read that output and decide what to "
+    "do next: fix and rerun if status=error/timeout, or parse/summarize stdout when "
+    "status=ok/warning. If stdout is '(no output)' but a result is needed, rerun "
+    "with explicit print statements. Keep responses concise and explain results. "
+    "If a filename is mentioned, assume it lives in /data and use absolute paths. "
+    "If a file is missing, run os.listdir('/data') and retry."
 )
 
 
@@ -77,8 +80,30 @@ def _should_force_tool(text: str) -> bool:
     return False
 
 
+def _choose_tool_name(text: str) -> str:
+    lowered = text.lower()
+    heavy_markers = (
+        "pandas",
+        "numpy",
+        "matplotlib",
+        "seaborn",
+        "plot",
+        "chart",
+        "graph",
+        "dataframe",
+        "regression",
+        "machine learning",
+        "ml",
+    )
+    if any(marker in lowered for marker in heavy_markers):
+        return "cpython_python"
+    if re.search(r"\b(pd|np)\b", lowered):
+        return "cpython_python"
+    return "sandboxed_python"
+
+
 def _create_agent(streaming: bool):
-    tools = [SandboxedPythonTool()]
+    tools = [SandboxedPythonTool(), CpythonSandboxTool()]
     model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
     try:
@@ -101,7 +126,7 @@ def _create_agent(streaming: bool):
                         text = _message_text(request.messages[-1])
                         if _should_force_tool(text):
                             return handler(
-                                request.override(tool_choice="sandboxed_python")
+                                request.override(tool_choice=_choose_tool_name(text))
                             )
                 return handler(request)
 

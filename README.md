@@ -8,11 +8,12 @@ backend is a FastAPI service that executes the agent and streams results.
 
 - Frontend: Next.js UI + API routes for streaming and file upload proxying.
 - Backend: FastAPI service that runs the LangChain agent and sandbox tool.
-- Sandbox: Node + Pyodide runner with best-effort CPU/file/memory limits.
+- Sandbox A: Node + Pyodide runner with best-effort CPU/file/memory limits.
+- Sandbox B: CPython subprocess for pandas/numpy/matplotlib/seaborn workloads.
 
 ## Features
 
-- Server-side Python execution through Pyodide
+- Server-side Python execution through Pyodide or CPython
 - Streaming responses (SSE)
 - Disk-backed per-session file uploads (mounted at `/data` during runs)
 - Best-effort resource limits and timeouts
@@ -60,6 +61,11 @@ Backend:
 - `OPENAI_API_KEY` (required)
 - `SANDBOX_AS_MB` (address space cap in MB; set `0` to disable)
 - `SANDBOX_TIMEOUT_S` (sandbox wall-clock timeout)
+- `CPYTHON_BIN` (override CPython executable)
+- `CPYTHON_TIMEOUT_S` (CPython wall-clock timeout)
+- `CPYTHON_FSIZE_MB` (CPython file size cap)
+- `CPYTHON_NOFILE` (CPython open file limit)
+- `CPYTHON_AS_MB` (CPython address space cap; `0` disables)
 - `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX` (request throttling)
 - `MAX_INPUT_CHARS` (input size cap)
 - `SESSION_BASE_DIR` (default `/tmp/sandbox-sessions`)
@@ -77,4 +83,4 @@ expires. The frontend keeps a session ID in `sessionStorage`.
 - This is a best-effort sandbox, not a hardened security boundary.
 - Pyodide assets are loaded from the local `node_modules/pyodide` package.
 - If you override `PYODIDE_INDEX_URL`, use a local filesystem path.
-
+- Sandbox B uses the system Python environment, so install pandas/numpy/matplotlib/seaborn.
